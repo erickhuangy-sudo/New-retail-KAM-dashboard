@@ -1432,6 +1432,18 @@ const STRINGS={
     dAvgSoFar:'Avg/day so far',dProjTotal:'Projected total',dStillNeed:'Still needed',
     dVsAvg:'vs {prv} avg/day',dMore:'more',dOnTrackMsg:'✅ On track',
     dNextDay:'เพิ่มวันถัดไป — อัปโหลด cumulative Excel',dNextDaySub:'Cumulative .xlsx · will update timeline automatically',
+    quadTitle:'Store Positioning — Target Ach% vs MoM Growth',
+    quadStar:'STAR',quadMat:'MATURE',quadRise:'RISING RISK',quadCrit:'CRITICAL',
+    quadStarL:'★ TOP PERFORMER',quadMatL:'◎ HIGH ACH / DECLINING',quadRiseL:'⚠ BELOW TARGET / IMPROVING',quadCritL:'✖ AT RISK',
+    quadMomZero:'MoM 0%',quadGrow:'↑ Growth',quadDrop:'↓ Decline',
+    quadTgtLine:'← Target 100% →',
+    neededTitle:'NEEDED DAILY GMV',neededLeft:'d left',neededPace:'Current pace',neededOf:'% of needed',
+    neededNeeds:'Needed/day (from now)',neededCurrPace:'Current pace (avg/day)',
+    neededOnTrack:'ON TRACK',neededPush:'NEEDS PUSH',neededGap:'Gap:',neededDRemain:'d remaining',
+    neededAccel:'▲ Accelerating',neededDecel:'▼ Decelerating',neededW1:'3d vs W1 avg',
+    quadStore:'Store',mixCategory:'Category',btnCollapse:'▴ Collapse',
+    mixTitle:'PRODUCT MIX SHIFT vs',
+    cvTrendTitle:'CV% TREND — Conversion Rate by Month',
   },
   th:{
     gmvTarget:'เป้า GMV',actGmv:'ยอด GMV จริง',tgtAch:'อัตราสำเร็จ',
@@ -1482,6 +1494,18 @@ const STRINGS={
     dAvgSoFar:'เฉลี่ย/วันจนถึงตอนนี้',dProjTotal:'คาดการณ์รวม',dStillNeed:'ยังต้องการ',
     dVsAvg:'เทียบ {prv} เฉลี่ย/วัน',dMore:'ร้านเพิ่มเติม',dOnTrackMsg:'✅ เป็นไปตามแผน',
     dNextDay:'เพิ่มวันถัดไป — อัปโหลด cumulative Excel',dNextDaySub:'ไฟล์สะสม .xlsx · จะเพิ่มเข้า timeline อัตโนมัติ',
+    quadTitle:'สถานะสาขา — % บรรลุเป้า vs การเติบโต MoM',
+    quadStar:'ดาวเด่น',quadMat:'สุกงอม',quadRise:'เสี่ยงสูงขึ้น',quadCrit:'วิกฤต',
+    quadStarL:'★ ผลงานดีเยี่ยม',quadMatL:'◎ บรรลุเป้า / แนวโน้มลด',quadRiseL:'⚠ ต่ำกว่าเป้า / กำลังฟื้น',quadCritL:'✖ ต้องเฝ้าระวัง',
+    quadMomZero:'MoM 0%',quadGrow:'↑ เติบโต',quadDrop:'↓ ลดลง',
+    quadTgtLine:'← เป้า 100% →',
+    neededTitle:'GMV ที่ต้องทำต่อวัน',neededLeft:'วันเหลือ',neededPace:'Pace ปัจจุบัน',neededOf:'% ของที่ต้องการ',
+    neededNeeds:'ต้องทำต่อวัน (จากนี้)',neededCurrPace:'Pace ปัจจุบัน (avg/day)',
+    neededOnTrack:'ON TRACK',neededPush:'ต้องเร่ง',neededGap:'Gap:',neededDRemain:'วันเหลือ',
+    neededAccel:'▲ เร่งขึ้น',neededDecel:'▼ ชะลอลง',neededW1:'3d vs W1 avg',
+    quadStore:'ร้านค้า',mixCategory:'หมวดหมู่',btnCollapse:'▴ ซ่อน',
+    mixTitle:'การเปลี่ยนแปลง Mix สินค้า vs',
+    cvTrendTitle:'แนวโน้ม CV% — Conversion Rate รายเดือน',
     coreIssuesHdr:'📌 Core Issues — 3 ปัจจัยฉุดยอดหลัก',
     coreDropLbl:'ลดลง',coreLostLbl:'ยอดที่หาย',coreCatNeg:'หมวดที่ลด MoM',
     coreDragLbl:'ฉุด MoM ช่องทางรวมไป',
@@ -1550,6 +1574,18 @@ const STRINGS={
     dAvgSoFar:'当前日均',dProjTotal:'预测总计',dStillNeed:'还需',
     dVsAvg:'对比{prv}日均',dMore:'更多',dOnTrackMsg:'✅ 按计划进行',
     dNextDay:'添加下一天 — 上传累计Excel',dNextDaySub:'累计 .xlsx · 自动更新时间线',
+    quadTitle:'门店定位 — 目标达成率 vs 环比增长',
+    quadStar:'明星',quadMat:'成熟',quadRise:'风险上升',quadCrit:'危急',
+    quadStarL:'★ 高绩效',quadMatL:'◎ 达标 / 趋势下滑',quadRiseL:'⚠ 未达标 / 改善中',quadCritL:'✖ 高风险',
+    quadMomZero:'环比 0%',quadGrow:'↑ 增长',quadDrop:'↓ 下降',
+    quadTgtLine:'← 目标 100% →',
+    neededTitle:'每日所需GMV',neededLeft:'天剩余',neededPace:'当前节奏',neededOf:'% 完成所需',
+    neededNeeds:'每日所需（从现在）',neededCurrPace:'当前节奏（日均）',
+    neededOnTrack:'达标',neededPush:'需加速',neededGap:'缺口：',neededDRemain:'天剩余',
+    neededAccel:'▲ 加速中',neededDecel:'▼ 减速中',neededW1:'3日 vs W1均值',
+    quadStore:'门店',mixCategory:'品类',btnCollapse:'▴ 收起',
+    mixTitle:'产品结构变化 vs',
+    cvTrendTitle:'CV% 趋势 — 月度转化率',
   }
 }
 function t(k){return(STRINGS[CL]||STRINGS.en)[k]||STRINGS.en[k]||k;}
@@ -2803,6 +2839,160 @@ function buildRiskView(){
   _rsvg+=`<line x1="${_RPL+108}" y1="9" x2="${_RPL+120}" y2="9" stroke="#f97316" stroke-width="1.8"/><circle cx="${_RPL+114}" cy="9" r="3.5" fill="#f97316"/><text x="${_RPL+124}" y="13" fill="#606070" font-size="8.5" font-family="inherit">Achievement %</text>`;
   const retChartHTML=`<svg viewBox="0 0 ${_RW} ${_RH}" style="width:100%;height:auto;display:block;overflow:visible">${_rsvg}</svg>`;
 
+
+  // ── STORE QUADRANT (redesigned: chart + per-quadrant store list) ───────────
+  const quadStores=sd.filter(d=>d.tach!=null&&d.mom!=null);
+  const qStars  =quadStores.filter(d=>d.tach>=100&&(d.mom||0)>=0).sort((a,b)=>b.tach-a.tach);
+  const qMatures=quadStores.filter(d=>d.tach>=100&&(d.mom||0)<0).sort((a,b)=>a.mom-b.mom);
+  const qRises  =quadStores.filter(d=>d.tach<100&&(d.mom||0)>=0).sort((a,b)=>b.tach-a.tach);
+  const qCrits  =quadStores.filter(d=>d.tach<100&&(d.mom||0)<0).sort((a,b)=>a.tach-b.tach);
+  const qStar=qStars.length,qMat=qMatures.length,qRise=qRises.length,qCrit=qCrits.length;
+
+  // --- SVG scatter (compact) ---
+  const qW=560,qH=240,qPL=46,qPR=18,qPT=18,qPB=32;
+  const qCW=qW-qPL-qPR,qCH=qH-qPT-qPB;
+  const maxTach=Math.min(220,Math.max(150,...(quadStores.length?quadStores.map(d=>d.tach):[150])));
+  const maxMomV=Math.max(60,...(quadStores.length?quadStores.map(d=>Math.abs(d.mom||0)):[60]));
+  const xQ=tval=>qPL+Math.min(1,Math.max(0,tval/maxTach))*qCW;
+  const yQ=m=>qPT+qCH/2-Math.min(qCH/2,Math.max(-qCH/2,(m/maxMomV)*(qCH/2)));
+  const x100=xQ(100),ymid=qPT+qCH/2;
+  let qsvg='';
+  // BG quadrants
+  qsvg+=`<rect x="${qPL}" y="${qPT}" width="${(x100-qPL).toFixed(1)}" height="${(qCH/2).toFixed(1)}" fill="#3b82f608"/>`;
+  qsvg+=`<rect x="${x100.toFixed(1)}" y="${qPT}" width="${(qCW-(x100-qPL)).toFixed(1)}" height="${(qCH/2).toFixed(1)}" fill="#22c55e0a"/>`;
+  qsvg+=`<rect x="${qPL}" y="${ymid.toFixed(1)}" width="${(x100-qPL).toFixed(1)}" height="${(qCH/2).toFixed(1)}" fill="#ef444412"/>`;
+  qsvg+=`<rect x="${x100.toFixed(1)}" y="${ymid.toFixed(1)}" width="${(qCW-(x100-qPL)).toFixed(1)}" height="${(qCH/2).toFixed(1)}" fill="#f59e0b08"/>`;
+  // Quadrant labels + counts
+  const qML=(qPL+(x100-qPL)/2).toFixed(0),qMR=(x100+(qCW-(x100-qPL))/2).toFixed(0);
+  qsvg+=`<text x="${qML}" y="${(qPT+11)}" fill="#60a5fa" font-size="8.5" text-anchor="middle" font-weight="700">${t('quadRiseL')} (${qRise})</text>`;
+  qsvg+=`<text x="${qMR}" y="${(qPT+11)}" fill="#4ade80" font-size="8.5" text-anchor="middle" font-weight="700">${t('quadStarL')} (${qStar})</text>`;
+  qsvg+=`<text x="${qML}" y="${(qPT+qCH-4).toFixed(0)}" fill="#f87171" font-size="8.5" text-anchor="middle" font-weight="700">${t('quadCritL')} (${qCrit})</text>`;
+  qsvg+=`<text x="${qMR}" y="${(qPT+qCH-4).toFixed(0)}" fill="#fbbf24" font-size="8.5" text-anchor="middle" font-weight="700">${t('quadMatL')} (${qMat})</text>`;
+  // Dividers
+  qsvg+=`<line x1="${x100.toFixed(1)}" y1="${qPT}" x2="${x100.toFixed(1)}" y2="${(qPT+qCH)}" stroke="#ffffff" stroke-width="1" opacity=".15" stroke-dasharray="4,3"/>`;
+  qsvg+=`<line x1="${qPL}" y1="${ymid.toFixed(1)}" x2="${(qW-qPR)}" y2="${ymid.toFixed(1)}" stroke="#ffffff" stroke-width="1" opacity=".15" stroke-dasharray="4,3"/>`;
+  // Axis labels
+  qsvg+=`<text x="${(qPL-3)}" y="${(ymid+3.5).toFixed(1)}" fill="#4b5563" font-size="7.5" text-anchor="end">${t('quadMomZero')}</text>`;
+  qsvg+=`<text x="${x100.toFixed(0)}" y="${(qPT+qCH+13).toFixed(0)}" fill="#6b7280" font-size="7.5" text-anchor="middle">${t('quadTgtLine')}</text>`;
+  qsvg+=`<text x="${qPL-3}" y="${(qPT+8)}" fill="#4ade80" font-size="7" text-anchor="end">${t('quadGrow')}</text>`;
+  qsvg+=`<text x="${qPL-3}" y="${(qPT+qCH-2).toFixed(0)}" fill="#f87171" font-size="7" text-anchor="end">${t('quadDrop')}</text>`;
+  // Store dots with <title> tooltip
+  const fvQ=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':Math.round(v)+'';
+  quadStores.forEach(d=>{
+    const cx=xQ(d.tach),cy=yQ(d.mom||0);
+    const isTop=d.tach>=100&&(d.mom||0)>=0,isMat=d.tach>=100&&(d.mom||0)<0;
+    const col=isTop?'#4ade80':isMat?'#fbbf24':(d.mom||0)>=0?'#60a5fa':'#f87171';
+    const tip=`${d.name} | Ach: ${d.tach.toFixed(1)}% | MoM: ${(d.mom||0)>=0?'+':''}${(d.mom||0).toFixed(1)}% | GMV: ${fvQ(d.gmv)}`;
+    qsvg+=`<g onmouseover="qHover('${d.id}',true)" onmouseout="qHover('${d.id}',false)" style="cursor:pointer"><title>${tip}</title><circle id="qc-${d.id}" data-col="${col}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3.5" fill="${col}" opacity=".7" stroke="${col}" stroke-width="0.5"/></g>`;
+  });
+  const quadSvgHTML=`<svg viewBox="0 0 ${qW} ${qH}" width="100%" style="display:block;cursor:crosshair">${qsvg}</svg>`;
+
+  // --- Per-quadrant store rows (4 panels) ---
+  const _qr=(d,col)=>`<div data-qsid="${d.id}" onmouseenter="qHover('${d.id}',true)" onmouseleave="qHover('${d.id}',false)" style="display:grid;grid-template-columns:1fr 44px 52px;align-items:center;padding:5px 8px;border-radius:6px;margin-bottom:3px;background:rgba(255,255,255,.03);gap:4px;cursor:pointer;transition:background .15s,transform .12s"><span style="font-size:.6rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.name}">${d.name.replace('Xiaomi Authorized Store ','').replace('Xiaomi Store ','').replace(' Thailand','').split(' ').slice(0,2).join(' ')}</span><span style="font-size:.58rem;color:${col};font-weight:700;text-align:right;white-space:nowrap">${d.tach.toFixed(0)}%</span><span style="font-size:.58rem;color:${(d.mom||0)>=0?'#4ade80':'#f87171'};text-align:right;white-space:nowrap">${(d.mom||0)>=0?'+':''}${(d.mom||0).toFixed(1)}%</span></div>`;
+  const mkQRow=(arr,col,pid)=>{
+    const vis=arr.slice(0,8),rest=arr.slice(8);
+    let h=vis.map(d=>_qr(d,col)).join('');
+    if(rest.length){
+      const hid='qxp'+pid;
+      h+=`<div id="${hid}" style="display:none">${rest.map(d=>_qr(d,col)).join('')}</div>`;
+      h+=`<div onclick="(function(btn){var e=document.getElementById('${hid}');var open=e.style.display!=='none';e.style.display=open?'none':'';btn.innerHTML=open?'▾ +${rest.length} '+t('rMore'):t('btnCollapse');})(this)" style="font-size:.55rem;color:#6b7280;padding:5px 8px;cursor:pointer;text-align:center;border-radius:5px;background:rgba(255,255,255,.03);margin-top:3px;letter-spacing:.04em" onmouseover="this.style.color='#94a3b8';this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.color='#6b7280';this.style.background='rgba(255,255,255,.03)'">▾ +${rest.length} ${t('rMore')}</div>`;
+    }
+    return h;
+  };
+
+  const quadPanels=[
+    {title:t('quadCritL'),count:qCrit,col:'#f87171',arr:qCrits},
+    {title:t('quadRiseL'),count:qRise,col:'#60a5fa',arr:qRises},
+    {title:t('quadMatL'),count:qMat,col:'#fbbf24',arr:qMatures},
+    {title:t('quadStarL'),count:qStar,col:'#4ade80',arr:qStars},
+  ];
+  const quadListHTML=quadPanels.map((p,pi)=>`
+    <div style="background:var(--bg2);border:1px solid ${p.col}30;border-top:2px solid ${p.col};border-radius:8px;padding:10px;min-width:0">
+      <div style="font-size:.6rem;font-weight:700;color:${p.col};margin-bottom:6px">${p.title} · <span style="font-size:.75rem">${p.count}</span></div>
+      <div style="font-size:.52rem;color:#6b7280;margin-bottom:4px;display:grid;grid-template-columns:1fr 44px 52px;padding:0 8px;gap:4px">
+        <span>${t('quadStore')}</span><span style="text-align:right">Ach%</span><span style="text-align:right">MoM</span>
+      </div>
+      ${p.arr.length?mkQRow(p.arr,p.col,pi):`<div style="font-size:.6rem;color:var(--t5);padding:6px 8px">—</div>`}
+    </div>`).join('');
+
+  // ── NEEDED DAILY GMV ─────────────────────────────────────────────────────
+  const daysLeft=_dailyDm-_dailyDe;
+  // Use actual cumulative (not projected) to compute remaining gap → avoids false "ON TRACK"
+  const actualCumul4Gap=(_actualCumul&&_actualCumul>0)?_actualCumul:totGmv;
+  const actualGap=totTgt>actualCumul4Gap?totTgt-actualCumul4Gap:0;
+  const neededPerDay=daysLeft>0&&actualGap>0?Math.round(actualGap/daysLeft):0;
+  const currentPace=_actualCumul&&_dailyDe>0?Math.round(_actualCumul/_dailyDe):0;
+  const paceRatio=currentPace>0&&neededPerDay>0?currentPace/neededPerDay*100:null;
+  const fvN=v=>v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':Math.round(v).toLocaleString();
+  // Pace acceleration signal: recent 3 days vs first 7 days
+  const _riskDayTotals=_dailySrc?Array.from({length:_dailyDe},(_,i)=>Object.values(_dailySrc.stores).reduce((s,st)=>s+(st.days?.[i]||0),0)):[];
+  const _r3=_riskDayTotals.length>=3?_riskDayTotals.slice(-3).reduce((a,b)=>a+b,0)/3:0;
+  const _e7=_riskDayTotals.length>=7?_riskDayTotals.slice(0,7).reduce((a,b)=>a+b,0)/7:(_riskDayTotals.length?_riskDayTotals.reduce((a,b)=>a+b,0)/_riskDayTotals.length:0);
+  const riskPaceDir=_e7>0&&_r3>0?(_r3-_e7)/_e7*100:null;
+
+  // ── SUB-CATEGORY MIX SHIFT ───────────────────────────────────────────────
+  const subCatKeys=[
+    {key:'highend',lbl:'High-end',col:'#f97316'},
+    {key:'mobile_rev',lbl:'Mobile',col:'#60a5fa'},
+    {key:'aiot',lbl:'AIOT',col:'#22d3ee'},
+    {key:'pad',lbl:'Pad',col:'#4ade80'},
+    {key:'ecosystem',lbl:'Ecosystem',col:'#a78bfa'},
+    {key:'watch',lbl:'Watch',col:'#fb923c'},
+    {key:'band',lbl:'Band',col:'#f472b6'},
+  ];
+  const curTotG=sumF('gmv',mn),prvTotG=prv?sumF('gmv',prv):0;
+  const mixShift=subCatKeys.map(c=>{
+    const cv=sumF(c.key,mn),pv=prv?sumF(c.key,prv):0;
+    const curPct=curTotG>0?cv/curTotG*100:0,prvPct=prvTotG>0?pv/prvTotG*100:0;
+    return{...c,cv,pv,curPct,prvPct,shift:curPct-prvPct};
+  }).filter(c=>c.curPct>0.5||Math.abs(c.shift)>1).sort((a,b)=>Math.abs(b.shift)-Math.abs(a.shift));
+
+  // ── CV% TREND ────────────────────────────────────────────────────────────
+  const cvTrend=MONTHS.map(m=>{
+    const ss=stores.filter(s=>s.months[m]?.cv!=null&&s.months[m].cv>0&&s.months[m].cv<=50);
+    return{m,avg:ss.length?+(ss.reduce((a,s)=>a+s.months[m].cv,0)/ss.length).toFixed(2):null,n:ss.length};
+  }).filter(t=>t.avg!=null);
+  const selMnIdx=cvTrend.findIndex(t=>t.m===mn);
+  const cvW=480,cvH=110,cvPL=36,cvPR=18,cvPT=14,cvPB=26,cvCW=cvW-cvPL-cvPR,cvCH=cvH-cvPT-cvPB;
+  const cvMax=Math.max(...cvTrend.map(t=>t.avg))*1.3;
+  const cvX=i=>cvPL+i*(cvCW/(Math.max(cvTrend.length-1,1)));
+  const cvY=v=>cvPT+cvCH*(1-v/cvMax);
+  let cvsvg='';
+  [0,cvMax*.5,cvMax].forEach(v=>{const y=cvY(v);cvsvg+=`<line x1="${cvPL}" y1="${y.toFixed(1)}" x2="${cvW-cvPR}" y2="${y.toFixed(1)}" stroke="#222230" stroke-width="1"/>`;cvsvg+=`<text x="${(cvPL-3)}" y="${(y+4).toFixed(1)}" fill="#4b5563" font-size="7.5" text-anchor="end">${v.toFixed(1)}%</text>`;});
+  if(cvTrend.length>1){
+    const linePts=cvTrend.map((t,i)=>`${cvX(i).toFixed(1)},${cvY(t.avg).toFixed(1)}`).join(' ');
+    cvsvg+=`<polyline points="${linePts}" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const pathD=cvTrend.reduce((acc,t,i)=>acc+(i===0?`M${cvX(i).toFixed(1)},${cvY(t.avg).toFixed(1)}`:`L${cvX(i).toFixed(1)},${cvY(t.avg).toFixed(1)}`),'')+` L${cvX(cvTrend.length-1).toFixed(1)},${(cvPT+cvCH)} L${cvPL},${(cvPT+cvCH)} Z`;
+    cvsvg+=`<path d="${pathD}" fill="#22d3ee" opacity=".08"/>`;
+  }
+  cvTrend.forEach((t,i)=>{
+    const cx=cvX(i),cy=cvY(t.avg),isSel=(i===selMnIdx);
+    cvsvg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${isSel?5.5:3.5}" fill="#22d3ee" opacity="${isSel?1:.55}" stroke="${isSel?'#fff':'none'}" stroke-width="1.5"/>`;
+    if(isSel){
+      const lblY=(cy-14<cvPT+4)?cy+16:cy-10;
+      cvsvg+=`<rect x="${(cx-18).toFixed(1)}" y="${(lblY-9).toFixed(1)}" width="38" height="13" rx="3" fill="#0f172a" opacity=".85"/>`;
+      cvsvg+=`<text x="${cx.toFixed(1)}" y="${lblY.toFixed(1)}" fill="#22d3ee" font-size="9" font-weight="700" text-anchor="middle">${t.avg}%</text>`;
+    }
+    cvsvg+=`<text x="${cx.toFixed(1)}" y="${(cvPT+cvCH+13).toFixed(1)}" fill="${isSel?'#94a3b8':'#4b5563'}" font-size="7.5" text-anchor="middle" font-weight="${isSel?700:400}">${MLBL[MONTHS.indexOf(t.m)]||t.m}</text>`;
+  });
+  const cvHTML=`<svg viewBox="0 0 ${cvW} ${cvH}" width="100%" style="display:block">${cvsvg}</svg>`;
+
+  // Quadrant hover — bidirectional: dot↔row
+  window.qHover=function(sid,on){
+    const c=document.getElementById('qc-'+sid);
+    if(c){
+      c.setAttribute('r',on?'8':'3.5');
+      c.setAttribute('opacity',on?'1':'.7');
+      c.setAttribute('stroke',on?'#fff':(c.getAttribute('data-col')||c.getAttribute('fill')));
+      c.setAttribute('stroke-width',on?'2':'0.5');
+    }
+    document.querySelectorAll('[data-qsid="'+sid+'"]').forEach(el=>{
+      el.style.background=on?'rgba(255,255,255,.09)':'rgba(255,255,255,.03)';
+      el.style.transform=on?'translateX(3px)':'';
+    });
+  };
+
+
   sec.innerHTML=`<div class="risk-page">
 
     <!-- ① OVERALL VERDICT -->
@@ -2862,7 +3052,97 @@ function buildRiskView(){
       ${coreHTML}
     </div>
 
-    <!-- ④ STORE ANALYSIS -->
+
+    <!-- ④ NEW: QUADRANT / PACE / MIX / CV -->
+
+    <!-- Store Quadrant redesigned -->
+    <div style="background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <div style="font-size:.62rem;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">${t('quadTitle')}</div>
+        <div style="display:flex;gap:12px;font-size:.58rem;flex-wrap:wrap">
+          <span style="color:#4ade80">★ ${qStar}</span>
+          <span style="color:#60a5fa">↑ ${qRise}</span>
+          <span style="color:#fbbf24">◎ ${qMat}</span>
+          <span style="color:#f87171">✖ ${qCrit}</span>
+        </div>
+      </div>
+      ${quadSvgHTML}
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px">
+        ${quadListHTML}
+      </div>
+    </div>
+
+    <!-- Needed Daily GMV (full-width prominent card) -->
+    ${mn==='Jul'&&(neededPerDay>0||gapToTgt<=0)?`
+    <div style="background:var(--bg1);border:1px solid ${(paceRatio!=null&&paceRatio>=100)?'#22c55e30':'#ef444430'};border-left:4px solid ${(paceRatio!=null&&paceRatio>=100)?'#22c55e':'#ef4444'};border-radius:14px;padding:18px 22px;margin-bottom:16px">
+      <div style="font-size:.65rem;color:#9ca3af;font-weight:600;letter-spacing:.08em;margin-bottom:14px">⚡ ${t('neededTitle')} — ${daysLeft} ${t('neededLeft')}</div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin-bottom:14px">
+        <div>
+          <div style="font-size:.65rem;color:#9ca3af;font-weight:500;margin-bottom:5px">${t('neededNeeds')}</div>
+          <div style="font-size:2.5rem;font-weight:900;color:${(paceRatio!=null&&paceRatio>=100)?'#22c55e':'#f59e0b'};line-height:1;letter-spacing:-1px">${fvN(neededPerDay)}<span style="font-size:.75rem;font-weight:400;color:#9ca3af;margin-left:2px">/day</span></div>
+          <div style="font-size:.65rem;color:#9ca3af;margin-top:5px">${t('neededGap')} <b style="color:#e2e8f0">${fvN(actualGap)}</b> · ${daysLeft} ${t('neededDRemain')}</div>
+        </div>
+        <div style="text-align:center;padding:0 8px">
+          <div style="font-size:.6rem;color:${(paceRatio!=null&&paceRatio>=100)?'#22c55e':'#f87171'};font-weight:700;letter-spacing:.06em">${(paceRatio!=null&&paceRatio>=100)?t('neededOnTrack'):t('neededPush')}</div>
+          <div style="font-size:1.6rem;color:${(paceRatio!=null&&paceRatio>=100)?'#22c55e':'#f87171'};line-height:1;margin:2px 0">${(paceRatio!=null&&paceRatio>=100)?'✓':'↑'}</div>
+          <div style="font-size:.8rem;font-weight:700;color:${(paceRatio!=null&&paceRatio>=100)?'#22c55e':'#f87171'}">${paceRatio!=null?paceRatio.toFixed(0)+'%':'—'}</div>
+          <div style="font-size:.58rem;color:#9ca3af">${t('neededOf')}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.65rem;color:#9ca3af;font-weight:500;margin-bottom:5px">${t('neededCurrPace')}</div>
+          <div style="font-size:2.5rem;font-weight:900;color:${(paceRatio!=null&&paceRatio>=100)?'#22c55e':'#ef4444'};line-height:1;letter-spacing:-1px">${fvN(currentPace)}<span style="font-size:.75rem;font-weight:400;color:#9ca3af;margin-left:2px">/day</span></div>
+          <div style="font-size:.65rem;margin-top:5px;color:${riskPaceDir!=null&&riskPaceDir>=0?'#4ade80':'#f87171'}">${riskPaceDir!=null?(riskPaceDir>=0?t('neededAccel'):t('neededDecel'))+' ('+t('neededW1')+' '+Math.abs(riskPaceDir).toFixed(0)+'%)':''}</div>
+        </div>
+      </div>
+      <div style="height:7px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden">
+        <div style="height:100%;background:${(paceRatio!=null&&paceRatio>=100)?'#22c55e':'#f59e0b'};border-radius:4px;width:${paceRatio!=null?Math.min(paceRatio,100).toFixed(0):0}%;transition:width .5s ease"></div>
+      </div>
+    </div>`:''}
+
+    <!-- Mix Shift + CV% row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+
+      ${prv&&mixShift.length?`
+      <div style="background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer" onclick="expandCard(this)">
+        <div style="font-size:.7rem;font-weight:700;color:var(--t3);margin-bottom:10px">🔀 ${t('mixTitle')} ${MLBL[MONTHS.indexOf(prv)]||prv}</div>
+        <div style="display:flex;justify-content:space-between;font-size:.62rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;padding:0 0 5px;border-bottom:1px solid rgba(255,255,255,.07)">
+          <span>${t('mixCategory')}</span>
+          <span style="display:flex;gap:0">
+            <span style="min-width:52px;text-align:right">${MLBL[MONTHS.indexOf(prv)]||prv}</span>
+            <span style="min-width:12px;text-align:center;color:#374151">→</span>
+            <span style="min-width:52px;text-align:right">${MLBL[MONTHS.indexOf(mn)]||mn}</span>
+            <span style="min-width:56px;text-align:right">MoM</span>
+          </span>
+        </div>
+        ${mixShift.map(c=>{
+          const barW=Math.min(100,c.curPct/30*100);
+          const shiftCol=c.shift>=0?'#4ade80':'#f87171';
+          return `<div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;font-size:.6rem;margin-bottom:3px;align-items:center">
+              <span style="color:${c.col};font-weight:600">${c.lbl}</span>
+              <span style="display:flex;gap:0;white-space:nowrap">
+                <span style="min-width:46px;text-align:right;color:var(--t4)">${c.prvPct.toFixed(1)}%</span>
+                <span style="min-width:10px;text-align:center;color:#374151;font-size:.55rem">→</span>
+                <span style="min-width:46px;text-align:right;color:var(--t2);font-weight:700">${c.curPct.toFixed(1)}%</span>
+                <span style="min-width:52px;text-align:right;color:${shiftCol};font-weight:700">${c.shift>=0?'+':''}${c.shift.toFixed(1)}pp</span>
+              </span>
+            </div>
+            <div style="height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden">
+              <div style="height:100%;background:${c.col};border-radius:2px;width:${barW.toFixed(1)}%;opacity:.75"></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`:''}
+    </div>
+
+    <!-- CV% Trend -->
+    ${cvTrend.length>1?`
+    <div style="background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;cursor:pointer" onclick="expandCard(this)">
+      <div style="font-size:.62rem;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">📈 ${t('cvTrendTitle')}</div>
+      ${cvHTML}
+    </div>`:''}
+
+    <!-- ⑤ STORE ANALYSIS -->
     ${insights.length?`<div style="font-size:.7rem;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">④ ${t('coreStoreAnalysis')}</div><div class="risk-grid">${cardHTML}</div>`:`<div style="color:var(--t4);padding:32px;text-align:center">${t('riskNoIssue')}</div>`}
   </div>`;
 }
@@ -3097,10 +3377,14 @@ function buildDailyView(){
     }
     return d;
   };
-  // Anomaly: >2σ from 7-day trailing mean (like the screenshot)
+  // 7-day rolling average + anomaly detection
   const trailMean=dayTotals.map((_,i)=>{const w=dayTotals.slice(Math.max(0,i-6),i+1);return w.reduce((a,b)=>a+b,0)/w.length;});
   const trailStd=dayTotals.map((_,i)=>{const w=dayTotals.slice(Math.max(0,i-6),i+1);const m=w.reduce((a,b)=>a+b,0)/w.length;return Math.sqrt(w.reduce((a,b)=>a+(b-m)**2,0)/w.length)||0;});
   const anomArr=dayTotals.map((v,i)=>trailStd[i]>0&&Math.abs(v-trailMean[i])>2*trailStd[i]);
+  // Pace acceleration: recent 3 days vs first 7 days avg
+  const recent3Avg=dayTotals.length>=3?dayTotals.slice(-3).reduce((a,b)=>a+b,0)/3:0;
+  const early7Avg=dayTotals.length>=7?dayTotals.slice(0,7).reduce((a,b)=>a+b,0)/7:(dayTotals.length?dayTotals.reduce((a,b)=>a+b,0)/dayTotals.length:0);
+  const paceAccel=early7Avg>0&&recent3Avg>0?(recent3Avg-early7Avg)/early7Avg*100:null;
   const anomCount=anomArr.filter(Boolean).length;
   // Build SVG content string
   let svgG='';
@@ -3138,6 +3422,11 @@ function buildDailyView(){
     const _areaPath=smoothCurve(actualPts)+` L${sx(dayTotals.length-1).toFixed(1)},${(PT+chartH).toFixed(1)} L${PL.toFixed(1)},${(PT+chartH).toFixed(1)} Z`;
     svgG+=`<path d="${_areaPath}" fill="url(#${_gid})" opacity="0.9"/>`;
     svgG+=`<path d="${smoothCurve(actualPts)}" fill="none" stroke="#f97316" stroke-width="1.8" opacity=".95" stroke-linecap="round" stroke-linejoin="round"/>`;
+    // 7-day rolling avg trend line
+    if(trailMean.length>2){
+      const avgPts=trailMean.map((v,i)=>[sx(i),sy(v)]);
+      svgG+=`<path d="${smoothCurve(avgPts)}" fill="none" stroke="#22d3ee" stroke-width="1.4" opacity=".8" stroke-linecap="round"/>`;
+    }
   }
   // Dots: anomaly (red with ring), selected (orange large), normal (orange small)
   dayTotals.forEach((v,i)=>{
@@ -3166,6 +3455,7 @@ function buildDailyView(){
         <span style="display:flex;align-items:center;gap:3px"><svg width="16" height="5" viewBox="0 0 16 5"><line x1="0" y1="2.5" x2="16" y2="2.5" stroke="#f97316" stroke-width="1.2" stroke-dasharray="4,3" opacity=".4"/></svg>${t('dForecast')}</span>
         ${juneDayAvg>0?`<span style="display:flex;align-items:center;gap:3px"><svg width="16" height="5" viewBox="0 0 16 5"><line x1="0" y1="2.5" x2="16" y2="2.5" stroke="#6b7280" stroke-width="1" stroke-dasharray="4,3"/></svg>${prvMn||''} avg</span>`:''}
         ${targetDayPace>0?`<span style="display:flex;align-items:center;gap:3px"><svg width="16" height="5" viewBox="0 0 16 5"><line x1="0" y1="2.5" x2="16" y2="2.5" stroke="#22c55e" stroke-width="1" stroke-dasharray="4,3"/></svg>${t('dTgtDay')}</span>`:''}
+        ${trailMean.length>2?`<span style="display:flex;align-items:center;gap:3px"><svg width="16" height="5" viewBox="0 0 16 5"><line x1="0" y1="2.5" x2="16" y2="2.5" stroke="#22d3ee" stroke-width="1.4" opacity=".8"/></svg>7d avg</span>`:''}
         ${anomCount>0?`<span style="display:flex;align-items:center;gap:3px"><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#ef4444"/></svg>${t('dAnom')}</span>`:''}
       </div>
     </div>
