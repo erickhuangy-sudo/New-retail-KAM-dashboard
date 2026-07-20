@@ -3109,27 +3109,27 @@ function buildRiskView(){
 
       ${prv&&mixShift.length?`
       <div style="background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer" onclick="expandCard(this)">
-        <div style="font-size:.7rem;font-weight:700;color:var(--t3);margin-bottom:10px">🔀 ${t('mixTitle')} ${MLBL[MONTHS.indexOf(prv)]||prv}</div>
-        <div style="display:flex;justify-content:space-between;font-size:.62rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;padding:0 0 5px;border-bottom:1px solid rgba(255,255,255,.07)">
+        <div style="font-size:.78rem;font-weight:700;color:var(--t3);margin-bottom:10px">🔀 ${t('mixTitle')} ${MLBL[MONTHS.indexOf(prv)]||prv}</div>
+        <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;padding:0 0 5px;border-bottom:1px solid rgba(255,255,255,.07)">
           <span>${t('mixCategory')}</span>
           <span style="display:flex;gap:0">
-            <span style="min-width:52px;text-align:right">${MLBL[MONTHS.indexOf(prv)]||prv}</span>
-            <span style="min-width:12px;text-align:center;color:#374151">→</span>
-            <span style="min-width:52px;text-align:right">${MLBL[MONTHS.indexOf(mn)]||mn}</span>
-            <span style="min-width:56px;text-align:right">MoM</span>
+            <span style="min-width:58px;text-align:right">${MLBL[MONTHS.indexOf(prv)]||prv}</span>
+            <span style="min-width:14px;text-align:center;color:#374151">→</span>
+            <span style="min-width:58px;text-align:right">${MLBL[MONTHS.indexOf(mn)]||mn}</span>
+            <span style="min-width:62px;text-align:right">MoM</span>
           </span>
         </div>
         ${mixShift.map(c=>{
           const barW=Math.min(100,c.curPct/30*100);
           const shiftCol=c.shift>=0?'#4ade80':'#f87171';
-          return `<div style="margin-bottom:8px">
-            <div style="display:flex;justify-content:space-between;font-size:.6rem;margin-bottom:3px;align-items:center">
+          return `<div style="margin-bottom:9px">
+            <div style="display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:3px;align-items:center">
               <span style="color:${c.col};font-weight:600">${c.lbl}</span>
               <span style="display:flex;gap:0;white-space:nowrap">
-                <span style="min-width:46px;text-align:right;color:var(--t4)">${c.prvPct.toFixed(1)}%</span>
-                <span style="min-width:10px;text-align:center;color:#374151;font-size:.55rem">→</span>
-                <span style="min-width:46px;text-align:right;color:var(--t2);font-weight:700">${c.curPct.toFixed(1)}%</span>
-                <span style="min-width:52px;text-align:right;color:${shiftCol};font-weight:700">${c.shift>=0?'+':''}${c.shift.toFixed(1)}pp</span>
+                <span style="min-width:52px;text-align:right;color:var(--t4)">${c.prvPct.toFixed(1)}%</span>
+                <span style="min-width:12px;text-align:center;color:#374151;font-size:.6rem">→</span>
+                <span style="min-width:52px;text-align:right;color:var(--t2);font-weight:700">${c.curPct.toFixed(1)}%</span>
+                <span style="min-width:58px;text-align:right;color:${shiftCol};font-weight:700">${c.shift>=0?'+':''}${c.shift.toFixed(1)}pp</span>
               </span>
             </div>
             <div style="height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden">
