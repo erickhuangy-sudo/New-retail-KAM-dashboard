@@ -2342,56 +2342,56 @@ let WOW_JUL=[]; // populated dynamically from _JULY
 function populateJulyWOW(){
   if(typeof _JULY==='undefined'||!_JULY) return;
   const jstores=_JULY.stores, de=_JULY.meta.de;
-  // Split into weeks: W1=days 1-7, W2=days 8+
-  const W1_END=Math.min(7,de), W2_START=7, W2_END=de;
-  const hasW2=de>7;
+  // Split into proper 7-day calendar weeks (like June) so chart has enough points to curve
+  // W1: Jul 1-7, W2: Jul 8-14, W3: Jul 15-21, W4: Jul 22-28, W5: Jul 29-31
+  const weekDefs=[
+    {wk:'W1',start:0,end:7,label:(e)=>`Jul 1–7 (7d)`},
+    {wk:'W2',start:7,end:14,label:(e)=>`Jul 8–14 (7d)`},
+    {wk:'W3',start:14,end:21,label:(e)=>`Jul 15–${Math.min(21,e)} (${Math.min(21,e)-14}d)`},
+    {wk:'W4',start:21,end:28,label:(e)=>`Jul 22–${Math.min(28,e)} (${Math.min(28,e)-21}d)`},
+    {wk:'W5',start:28,end:31,label:(e)=>`Jul 29–${Math.min(31,e)} (${Math.min(31,e)-28}d)`},
+  ].filter(w=>de>w.start);
 
-  // Accumulators
-  let t1={gmv:0,mob:0,he:0,pad:0,aiot:0,vis:0,cvS:0,cvN:0};
-  let t2={gmv:0,mob:0,he:0,pad:0,aiot:0,vis:0,cvS:0,cvN:0};
-  const s1=[],s2=[];
+  // Build accumulators per week
+  const totals=weekDefs.map(()=>({gmv:0,mob:0,he:0,pad:0,aiot:0,vis:0,cvS:0,cvN:0}));
+  const storeLists=weekDefs.map(()=>[]);
 
   Object.values(jstores).forEach(j=>{
     if(!j||j.cumul<=0) return;
-    // Days array contains daily incremental GMV
     const dArr=j.days||[];
-    const g1=dArr.slice(0,W1_END).reduce((a,v)=>a+(v||0),0);
-    const g2=hasW2?dArr.slice(W2_START,W2_END).reduce((a,v)=>a+(v||0),0):0;
     const gTotal=j.cumul||1;
-    // Estimate sub-cats proportionally for each week
-    const r1=gTotal>0?g1/gTotal:0, r2=gTotal>0?g2/gTotal:0;
-    if(g1>0){
-      s1.push({id:j.sid,name:j.name,gmv:g1,mobile:Math.round((j.mob||0)*r1),
-        highend:Math.round((j.highend||0)*r1),pad:Math.round((j.pad||0)*r1),aiot:Math.round((j.aiot||0)*r1)});
-      t1.gmv+=g1; t1.mob+=Math.round((j.mob||0)*r1); t1.he+=Math.round((j.highend||0)*r1);
-      t1.pad+=Math.round((j.pad||0)*r1); t1.aiot+=Math.round((j.aiot||0)*r1);
-      t1.vis+=Math.round((j.vis||0)*r1);
-      if(j.cv>0&&j.cv<=50){t1.cvS+=j.cv;t1.cvN++;}
-    }
-    if(hasW2&&g2>0){
-      s2.push({id:j.sid,name:j.name,gmv:g2,mobile:Math.round((j.mob||0)*r2),
-        highend:Math.round((j.highend||0)*r2),pad:Math.round((j.pad||0)*r2),aiot:Math.round((j.aiot||0)*r2)});
-      t2.gmv+=g2; t2.mob+=Math.round((j.mob||0)*r2); t2.he+=Math.round((j.highend||0)*r2);
-      t2.pad+=Math.round((j.pad||0)*r2); t2.aiot+=Math.round((j.aiot||0)*r2);
-      t2.vis+=Math.round((j.vis||0)*r2);
-      if(j.cv>0&&j.cv<=50){t2.cvS+=j.cv;t2.cvN++;}
-    }
-  });
-  s1.sort((a,b)=>b.gmv-a.gmv); s2.sort((a,b)=>b.gmv-a.gmv);
-  WOW_JUL=[{
-    wk:'W1',label:`Jul 1–7 (7d)`,days:W1_END,
-    totals:{gmv:t1.gmv,mobile:t1.mob,highend:t1.he,pad:t1.pad,aiot:t1.aiot,
-            visitors:t1.vis,cv_avg:t1.cvN>0?+(t1.cvS/t1.cvN).toFixed(2):null},
-    stores:s1
-  }];
-  if(hasW2){
-    WOW_JUL.push({
-      wk:'W2',label:`Jul 8–${de} (${de-7}d)`,days:W2_END-W2_START,
-      totals:{gmv:t2.gmv,mobile:t2.mob,highend:t2.he,pad:t2.pad,aiot:t2.aiot,
-              visitors:t2.vis,cv_avg:t2.cvN>0?+(t2.cvS/t2.cvN).toFixed(2):null},
-      stores:s2
+    weekDefs.forEach((w,wi)=>{
+      const actualEnd=Math.min(w.end,de);
+      const g=dArr.slice(w.start,actualEnd).reduce((a,v)=>a+(v||0),0);
+      if(g<=0) return;
+      const r=gTotal>0?g/gTotal:0;
+      storeLists[wi].push({id:j.sid,name:j.name,gmv:g,
+        mobile:Math.round((j.mob||0)*r),highend:Math.round((j.highend||0)*r),
+        pad:Math.round((j.pad||0)*r),aiot:Math.round((j.aiot||0)*r)});
+      totals[wi].gmv+=g;
+      totals[wi].mob+=Math.round((j.mob||0)*r);
+      totals[wi].he+=Math.round((j.highend||0)*r);
+      totals[wi].pad+=Math.round((j.pad||0)*r);
+      totals[wi].aiot+=Math.round((j.aiot||0)*r);
+      totals[wi].vis+=Math.round((j.vis||0)*r);
+      if(j.cv>0&&j.cv<=50){totals[wi].cvS+=j.cv;totals[wi].cvN++;}
     });
-  }
+  });
+
+  storeLists.forEach(sl=>sl.sort((a,b)=>b.gmv-a.gmv));
+  WOW_JUL=weekDefs.map((w,wi)=>{
+    const actualEnd=Math.min(w.end,de);
+    const days=actualEnd-w.start;
+    const t=totals[wi];
+    return {
+      wk:w.wk,
+      label:w.label(de),
+      days,
+      totals:{gmv:t.gmv,mobile:t.mob,highend:t.he,pad:t.pad,aiot:t.aiot,
+              visitors:t.vis,cv_avg:t.cvN>0?+(t.cvS/t.cvN).toFixed(2):null},
+      stores:storeLists[wi]
+    };
+  }).filter(w=>w.totals.gmv>0);
 }
 let selView='monthly';    // 'monthly' | 'weekly'
 let selMainView='analysis'; // 'analysis' | 'risk' | 'daily'
