@@ -3770,7 +3770,6 @@ function buildDailyView(){
     return `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:5px 8px;font-size:.65rem;color:var(--t2);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${s.name}">${s.name}</td>
       <td style="padding:5px 6px;font-size:.54rem;color:var(--t3);white-space:nowrap">${ret}</td>
-      ${dayTds}
       <td style="padding:5px 8px;text-align:right;font-weight:700;color:var(--t1);font-size:.68rem">${fv(s.cumul,1)}</td>
       <td style="padding:5px 8px;text-align:right;font-weight:700;font-size:.65rem;color:${ac}">${ach!=null?ach.toFixed(1)+'%':'—'}</td>
       <td style="padding:5px 8px;text-align:right;font-size:.62rem;color:var(--t4)">${s.target?fv(s.target,1):'—'}</td>
@@ -3778,6 +3777,7 @@ function buildDailyView(){
       <td style="padding:5px 8px;min-width:56px">
         ${stProg!=null?`<div style="height:4px;background:var(--bg2);border-radius:2px"><div style="height:4px;border-radius:2px;background:${ac};width:${stProg.toFixed(0)}%"></div></div><div style="font-size:.49rem;color:var(--t4);margin-top:1px">${stProg.toFixed(0)}%</div>`:''}
       </td>
+      ${dayTds}
     </tr>`;
   }).join('');
 
@@ -3835,12 +3835,12 @@ function buildDailyView(){
           <thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border)">
             <th style="padding:7px 8px;text-align:left;font-size:.6rem;color:var(--t3)">${t('thStores')}</th>
             <th style="padding:7px 6px;text-align:left;font-size:.55rem;color:var(--t4)">${t('thRet')}</th>
-            ${dayHdrs}
             <th style="padding:7px 8px;text-align:right;font-size:.6rem;color:var(--t3)">${t('dCumTab').replace(' ','')}</th>
             <th style="padding:7px 8px;text-align:right;font-size:.6rem;color:var(--t3)">${t('thAch')}</th>
             <th style="padding:7px 8px;text-align:right;font-size:.55rem;color:var(--t4)">${t('tgt')}</th>
             <th style="padding:7px 8px;text-align:right;font-size:.6rem;color:var(--t3)">${t('dForecast')}</th>
             <th style="padding:7px 8px;font-size:.55rem;color:var(--t4);min-width:58px">${t('runRate')}</th>
+            ${dayHdrs}
           </tr></thead>
           <tbody>${tableRows}</tbody>
         </table>
