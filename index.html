@@ -1734,12 +1734,14 @@ function buildKPIPace(stores,info){
     const _liveFilter=j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.sid));};
     if(mn==='Jul'&&typeof _JULY!=='undefined') return Object.values(_JULY.stores).filter(_liveFilter).reduce((a,j)=>a+(j[key]||0),0);
     if(mn==='Aug'&&typeof _AUG!=='undefined') return Object.values(_AUG.stores).filter(_liveFilter).reduce((a,j)=>a+(j[key]||0),0);
+    if(key==='highend_target') return null;
     return sum(key==='mob_target'?'mobile_target':key==='pad_target'?'pad_target':'aiot_target');
   };
   const subs=[
-    {lbl:'Mobile',act:sum('mobile_rev'),tgt2:liveSubTgt('mob_target'),col:'#f59e0b'},
-    {lbl:'Pad',   act:sum('pad'),       tgt2:liveSubTgt('pad_target'),col:'#22c55e'},
-    {lbl:'AIOT',  act:sum('aiot'),      tgt2:liveSubTgt('aiot_target'),col:'#3b82f6'},
+    {lbl:'Mobile',  act:sum('mobile_rev'),tgt2:liveSubTgt('mob_target'), col:'#f59e0b'},
+    {lbl:'High-end',act:sum('highend_qty'),tgt2:liveSubTgt('highend_target'),col:'#e879f9'},
+    {lbl:'Pad',     act:sum('pad'),       tgt2:liveSubTgt('pad_target'), col:'#22c55e'},
+    {lbl:'AIOT',    act:sum('aiot'),      tgt2:liveSubTgt('aiot_target'),col:'#3b82f6'},
   ];
   const subCards=subs.map(s=>{
     const a=s.tgt2?(s.act/s.tgt2*100):null;
