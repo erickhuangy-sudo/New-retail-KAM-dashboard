@@ -938,6 +938,7 @@ function buildKPIs(stores,info){
   const sv=(m)=>stores.reduce((a,s)=>a+(s.months[m]?.visitors||0),0);
   const sp=(m)=>stores.reduce((a,s)=>a+(s.months[m]?.pad||0),0);
   const gc=sg(mn),gp=prv?sg(prv):null,hc=sh(mn),hp=prv?sh(prv):null,ac=sa(mn),ap=prv?sa(prv):null,vc=sv(mn),vp=prv?sv(prv):null;
+  const hqc=shq(mn),hqp=prv?shq(prv):null;
   const pc=sp(mn),pp=prv?sp(prv):null;
   // Avg CV% (conversion rate)
   // CV% avg — filter impossible values (>100% mathematically invalid, caused by near-zero visitor counts)
@@ -953,7 +954,7 @@ function buildKPIs(stores,info){
   document.getElementById('kpiLabel').textContent=`${pvL} → ${cuL}`;
   document.getElementById('kpiRow').innerHTML=[
     {cls:'c0',lbl:'GMV Total',pv:f(gp),cv:f(gc),mv:mom(gc,gp),ex:`<div style="font-size:.57rem;color:${tachCol};margin-bottom:5px">Tgt Ach: <b>${avgTach!=null?avgTach+'%':'—'}</b></div>`},
-    {cls:'c1',lbl:'High-end',pv:f(hp),cv:f(hc),mv:mom(hc,hp),ex:`<div style="font-size:.57rem;color:var(--t4);margin-bottom:5px">H-end <b style='color:var(--t2)'>${hcc}%</b></div>`},
+    {cls:'c1',lbl:'High-end (Units)',pv:f(hqp,0),cv:f(hqc,0),mv:mom(hqc,hqp),ex:`<div style="font-size:.57rem;color:var(--t4);margin-bottom:5px">Rev <b style='color:var(--t2)'>${f(hc,2)}</b></div>`},
     {cls:'c2',lbl:t('aiot'),pv:f(ap),cv:f(ac),mv:mom(ac,ap),ex:`<div style="font-size:.57rem;color:var(--t4);margin-bottom:5px">AIOT <b style='color:var(--t2)'>${acc}%</b></div>`},
     {cls:'c3',lbl:'Pad (Tablet)',pv:f(pp),cv:f(pc),mv:mom(pc,pp),ex:`<div style="font-size:.57rem;color:var(--t4);margin-bottom:5px">Pad <b style='color:var(--t2)'>${pcc}%</b></div>`},
     {cls:'c0',lbl:'Visitors',pv:f(vp,0),cv:f(vc,0),mv:mom(vc,vp),ex:`<div style="font-size:.57rem;color:var(--amb2);margin-bottom:5px">per day: <b>${vpd(vc,mn)!=null?vpd(vc,mn).toFixed(1):' —'}</b> (${DAYS[mn]} days)</div>`},
@@ -1737,9 +1738,10 @@ function buildKPIPace(stores,info){
     return sum(key==='mob_target'?'mobile_target':key==='pad_target'?'pad_target':'aiot_target');
   };
   const subs=[
-    {lbl:'Mobile',act:sum('mobile_rev'),tgt2:liveSubTgt('mob_target'),col:'#f59e0b'},
-    {lbl:'Pad',   act:sum('pad'),       tgt2:liveSubTgt('pad_target'),col:'#22c55e'},
-    {lbl:'AIOT',  act:sum('aiot'),      tgt2:liveSubTgt('aiot_target'),col:'#3b82f6'},
+    {lbl:'Mobile',  act:sum('mobile_rev'), tgt2:liveSubTgt('mob_target'),     col:'#f59e0b'},
+    {lbl:'Pad',     act:sum('pad'),        tgt2:liveSubTgt('pad_target'),     col:'#22c55e'},
+    {lbl:'AIOT',    act:sum('aiot'),       tgt2:liveSubTgt('aiot_target'),    col:'#3b82f6'},
+    {lbl:'High-end SO',act:sum('highend_qty'), tgt2:liveSubTgt('highend_target'), col:'#a855f7'},
   ];
   const subCards=subs.map(s=>{
     const a=s.tgt2?(s.act/s.tgt2*100):null;
