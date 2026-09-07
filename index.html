@@ -971,7 +971,8 @@ function buildRetCmp(info){
 
 // ─── KPI ───
 function buildKPIs(stores,info){
-  const mn=info.curr||'May', prv=info.prev;
+  const mn=info.curr||(selPeriod==='q1'?'Mar':selPeriod==='q2'?'Jun':selPeriod==='ytd'?'Jun':'May');
+  const prv=info.prev||(selPeriod==='q2'?'Mar':selPeriod==='ytd'?'Mar':null);
   const sg=(m)=>stores.reduce((a,s)=>a+(s.months[m]?.gmv||0),0);
   const sh=(m)=>stores.reduce((a,s)=>a+(s.months[m]?.highend||0),0);
   const shq=(m)=>stores.reduce((a,s)=>a+(s.months[m]?.highend_qty||0),0);
@@ -1022,9 +1023,14 @@ function buildTrend(stores){
   const selIdx=MONTHS.indexOf(selMonth);
 
   // Compute avg per store per month for metrics
+  // Jan-May: use D.channel totals ÷ official store_count (avoids store-count denominator distortion)
+  // Jun-Sep: sum from per-store data ÷ stores with GMV > 0 (consistent denominator across keys)
   const avgOf=(key)=>MONTHS.map(mn=>{
-    const sw=stores.filter(s=>s.months[mn]?.[key]);
-    return sw.length?Math.round(sw.reduce((a,s)=>a+(s.months[mn][key]||0),0)/sw.length):null;
+    if(D.channel&&D.channel[mn]&&D.channel[mn].store_count>0){
+      return Math.round((D.channel[mn][key]||0)/D.channel[mn].store_count);
+    }
+    const sw=stores.filter(s=>(s.months[mn]?.gmv||0)>0);
+    return sw.length?Math.round(sw.reduce((a,s)=>a+(s.months[mn]?.[key]||0),0)/sw.length):null;
   });
   const avgGMV=avgOf('gmv'), avgAIOT=avgOf('aiot'), avgHigh=avgOf('highend'), avgPad=avgOf('pad');
 
@@ -1084,14 +1090,14 @@ function buildTrend(stores){
   }
 
   // Draw lines (back to front)
-  drawLine(avgAIOT,'#3b82f6','',1.2,.8);    // AIOT cyan
-  drawLine(avgHigh,'#3b82f6','',1.2,.8);    // High-end purple
-  drawLine(avgPad,'#22c55e','',1.2,.85);    // Pad green
-  drawLine(avgGMV,'#f59e0b','',1.6,1);    // GMV orange (on top)
+  drawLine(avgHigh,'#a855f7','',1.2,.8);   // High-end purple
+  drawLine(avgAIOT,'#38bdf8','',1.2,.8);   // AIOT sky-blue
+  drawLine(avgPad,'#22c55e','',1.2,.85);   // Pad green
+  drawLine(avgGMV,'#f59e0b','',1.8,1);    // GMV orange (on top)
 
   // Draw dots
-  drawDots(avgAIOT,'#3b82f6',3.5,3);
-  drawDots(avgHigh,'#3b82f6',3.5,3);
+  drawDots(avgHigh,'#a855f7',3.5,3);
+  drawDots(avgAIOT,'#38bdf8',3.5,3);
   drawDots(avgPad,'#22c55e',3.5,3);
   drawDots(avgGMV,'#f59e0b',4.5,4);
 
@@ -1106,8 +1112,8 @@ function buildTrend(stores){
   const metrics=[
     {lbl:'GMV',col:'#f59e0b',data:avgGMV,w:2.5},
     {lbl:t('pad'),col:'#22c55e',data:avgPad,w:2},
-    {lbl:'AIOT',col:'#3b82f6',data:avgAIOT,w:2},
-    {lbl:'H-end',col:'#3b82f6',data:avgHigh,w:2},
+    {lbl:'AIOT',col:'#38bdf8',data:avgAIOT,w:2},
+    {lbl:'H-end',col:'#a855f7',data:avgHigh,w:2},
   ];
   metrics.forEach((m,i)=>{
     const ly=PT+16+i*24;
@@ -1124,13 +1130,16 @@ function buildTrend(stores){
   document.getElementById('trendSvg').innerHTML=g;
   const cuL=selMonth?MLBL[selIdx]:'';
   document.getElementById('chartTitle').textContent=`Avg per Store — GMV · Pad · AIOT · High-end${cuL?' ('+cuL+')':''}`;
-  document.getElementById('chartSub').textContent='Orange=GMV · Green=Pad · Blue=AIOT · Purple=H-end · Right box value=Selected Month';
+  document.getElementById('chartSub').textContent='Orange=GMV · Green=Pad · Cyan=AIOT · Purple=H-end · Right box value=Selected Month';
 }
 
 // ─── MOM BARS ───
 function buildMomBars(stores){
   const W=840,H=70,PL=60,PR=16,PT=8,PB=18,cW=W-PL-PR,cH=H-PT-PB,n=MONTHS.length,xS=i=>PL+i*(cW/(n-1));
-  const avg=MONTHS.map(mn=>{const sw=stores.filter(s=>s.months[mn]?.gmv);return sw.length?sw.reduce((a,s)=>a+s.months[mn].gmv,0)/sw.length:null;});
+  const avg=MONTHS.map(mn=>{
+    if(D.channel&&D.channel[mn]&&D.channel[mn].store_count>0) return (D.channel[mn].gmv||0)/D.channel[mn].store_count;
+    const sw=stores.filter(s=>(s.months[mn]?.gmv||0)>0);return sw.length?sw.reduce((a,s)=>a+(s.months[mn].gmv||0),0)/sw.length:null;
+  });
   const moms=[null,...MONTHS.slice(1).map((mn,i)=>mom(avg[i+1],avg[i]))];
   const maxAbs=Math.max(...moms.filter(v=>v!=null).map(Math.abs),5)*1.3;
   const yZ=PT+cH*.5,yS=v=>yZ-v/maxAbs*(cH/2);
@@ -2531,6 +2540,7 @@ const WOW=[
 const WOW_MONTHS=['Jun','Jul','Aug','Sep']; // months with weekly WoW data
 let WOW_JUL=[]; // populated dynamically from _JULY
 let WOW_AUG=[]; // populated dynamically from _AUG
+let WOW_SEP=[]; // populated dynamically from _SEP
 
 function populateJulyWOW(){
   if(typeof _JULY==='undefined'||!_JULY) return;
@@ -2698,7 +2708,37 @@ function populateSepMonthlyData(){
     };
   });
 }
-function populateSepWOW(){ WOW.splice(0); }
+function populateSepWOW(){
+  WOW_SEP=[];
+  if(typeof _SEP==='undefined'||!_SEP) return;
+  const jstores=_SEP.stores, de=_SEP.meta.de;
+  if(de<=0) return;
+  // W1 = Sep 1-7: de days actual + run-rate to fill 7 days
+  const W1D=7;
+  const proj=(v)=>Math.round(v/de*W1D);
+  const totals={gmv:0,mob:0,he:0,heq:0,mobq:0,pad:0,aiot:0,vis:0,cvS:0,cvN:0};
+  const storeList=[];
+  Object.values(jstores).forEach(j=>{
+    if(!j||j.cumul<=0) return;
+    const g=proj(j.cumul);
+    if(g<=0) return;
+    storeList.push({id:j.sid,name:j.name,gmv:g,
+      mobile:proj(j.mob||0),highend:proj(j.highend||0),
+      pad:proj(j.pad||0),aiot:proj(j.aiot||0)});
+    totals.gmv+=g; totals.mob+=proj(j.mob||0);
+    totals.he+=proj(j.highend||0); totals.heq+=proj(j.highend_qty||0);
+    totals.mobq+=proj(j.mob_qty||0); totals.pad+=proj(j.pad||0);
+    totals.aiot+=proj(j.aiot||0); totals.vis+=proj(j.vis||0);
+    if(j.cv>0&&j.cv<=50){totals.cvS+=j.cv;totals.cvN++;}
+  });
+  storeList.sort((a,b)=>b.gmv-a.gmv);
+  WOW_SEP=[{wk:'W1',label:`Sep 1–7 (${de}d actual + run-rate)`,days:W1D,
+    totals:{gmv:totals.gmv,mobile:totals.mob,highend:totals.he,
+            highend_qty:totals.heq,mobile_qty:totals.mobq,
+            pad:totals.pad,aiot:totals.aiot,visitors:totals.vis,
+            cv_avg:totals.cvN>0?+(totals.cvS/totals.cvN).toFixed(2):null},
+    stores:storeList}];
+}
 
 function setMainView(v){
   selMainView=v;
@@ -2784,6 +2824,8 @@ function buildRiskView(){
   const fv=(v,d=1)=>v>=1e6?(v/1e6).toFixed(d)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':Math.round(v)+'';
   const fp=v=>(v>0?'+':'')+v.toFixed(1)+'%';
   const sn=s=>{let n=s.name.replace('Xiaomi Authorized Store ','').replace('Xiaomi Store ','').replace(' Thailand','').trim();return n.split(' ').slice(0,5).join(' ');};
+  // Live month meta for per-store forecast
+  const _liveMeta=(mn==='Jul'&&typeof _JULY!=='undefined')?_JULY.meta:(mn==='Aug'&&typeof _AUG!=='undefined')?_AUG.meta:(mn==='Sep'&&typeof _SEP!=='undefined')?_SEP.meta:null;
 
   const sd=stores.map(s=>{
     // Pull live data from _AUG/_JULY/_SEP for current & previous month
@@ -2801,7 +2843,9 @@ function buildRiskView(){
     const tach=live?(live.ach!=null?live.ach:(target>0?gmv/target*100:null)):(mo.target_ach!=null?mo.target_ach:(target>0?gmv/target*100:null));
     const gap=Math.max(0,target-gmv);
     const gmvPrv=livePrv?(livePrv.cumul||0):(mp.gmv||0);
-    const mom=gmvPrv>0?(gmv-gmvPrv)/gmvPrv*100:null;
+    // For MoM: use projected GMV (not 6-day actual) so mid-month comparison is fair vs prior full month
+    const gmvForMom=(_liveMeta&&_liveMeta.de>0&&gmv>0)?Math.round(gmv/_liveMeta.de*_liveMeta.dm):gmv;
+    const mom=gmvPrv>0?(gmvForMom-gmvPrv)/gmvPrv*100:null;
     const momPrv=mPP.gmv>0&&gmvPrv>0?(gmvPrv-mPP.gmv)/mPP.gmv*100:null;
     const vis=mo.visitors||0,visp=mp.visitors||0;
     const visDelta=visp>100?(vis-visp)/visp*100:null;
@@ -2811,7 +2855,11 @@ function buildRiskView(){
       const c=s.months[MONTHS[i]]?.gmv||0,p=s.months[MONTHS[i-1]]?.gmv||0;
       if(c>0&&p>0&&c<p)decM++;else break;
     }
-    return{s,name:sn(s),id:s.id,ret:RMAP[s.id]||'?',gmv,target,tach,gap,mom,momPrv,vis,visp,visDelta,cv,cvp,decM};
+    // Per-store run-rate forecast to EOM
+    const fcst_gmv=(_liveMeta&&_liveMeta.de>0&&gmv>0)?Math.round(gmv/_liveMeta.de*_liveMeta.dm):null;
+    const fcst_ach=fcst_gmv!=null&&target>0?fcst_gmv/target*100:tach;
+    const fcst_gap=fcst_gmv!=null&&target>0?Math.max(0,target-fcst_gmv):gap;
+    return{s,name:sn(s),id:s.id,ret:RMAP[s.id]||'?',gmv,target,tach,fcst_ach,fcst_gmv,fcst_gap,gap,mom,momPrv,vis,visp,visDelta,cv,cvp,decM};
   }).filter(d=>d.gmv>0);
 
   const insights=[];
@@ -2824,8 +2872,8 @@ function buildRiskView(){
       <span class="risk-srow-val" style="color:${r.col||col}">${r.val}</span>
     </div>`).join('');
 
-  // 1. Target at risk
-  const atRisk=sd.filter(d=>d.tach!=null&&d.tach<80).sort((a,b)=>a.tach-b.tach);
+  // 1. Target at risk — based on EOM forecast
+  const atRisk=sd.filter(d=>d.fcst_ach!=null&&d.fcst_ach<80).sort((a,b)=>a.fcst_ach-b.fcst_ach);
   if(atRisk.length){
     const shortfall=atRisk.reduce((s,d)=>s+d.gap,0);
     const totTgt=(mn==='Jul'&&typeof _JULY!=='undefined')
@@ -2839,7 +2887,7 @@ function buildRiskView(){
       title:`${atRisk.length} ${t('r1Title')}`,
       stat:fv(shortfall,1),statLbl:t('r1Stat'),statCol:'#ef4444',
       ctx:`${totTgt>0?(shortfall/totTgt*100).toFixed(1):0}% ${t('r1Ctx')}`,
-      allRows:atRisk.map(d=>({name:d.name,sub:d.ret.split(/[\s,]/)[0].slice(0,12),val:(d.tach?.toFixed(1)||'—')+'%',col:'#ef4444'}))});
+      allRows:atRisk.map(d=>({name:d.name,sub:d.ret.split(/[\s,]/)[0].slice(0,12),val:(d.fcst_ach?.toFixed(1)||'—')+'%',col:'#ef4444'}))});
   }
 
   // 2. Sustained decline 2+ months
@@ -2938,9 +2986,9 @@ function buildRiskView(){
     });
   }
 
-  // Core Issue 2: Critically underperforming stores (<60% run-rate)
-  const critStores=sd.filter(d=>d.tach!=null&&d.tach<60).sort((a,b)=>a.tach-b.tach);
-  const atRiskStores=sd.filter(d=>d.tach!=null&&d.tach<80).sort((a,b)=>a.tach-b.tach);
+  // Core Issue 2: Critically underperforming stores (<60% forecast)
+  const critStores=sd.filter(d=>d.fcst_ach!=null&&d.fcst_ach<60).sort((a,b)=>a.fcst_ach-b.fcst_ach);
+  const atRiskStores=sd.filter(d=>d.fcst_ach!=null&&d.fcst_ach<80).sort((a,b)=>a.fcst_ach-b.fcst_ach);
   if(critStores.length>0){
     const critGap=critStores.reduce((s,d)=>s+d.gap,0);
     coreIssues.push({
@@ -3014,19 +3062,21 @@ function buildRiskView(){
   const retMap={};
   sd.forEach(d=>{
     const ret=RMAP[d.id]||d.s.retailer||'Unknown';
-    if(!retMap[ret])retMap[ret]={name:ret,gmv:0,target:0,stores:0,storesWT:0};
+    if(!retMap[ret])retMap[ret]={name:ret,gmv:0,fcst_gmv:0,target:0,stores:0,storesWT:0};
     retMap[ret].gmv+=d.gmv;
+    retMap[ret].fcst_gmv+=(d.fcst_gmv!=null?d.fcst_gmv:d.gmv);
     retMap[ret].stores++;
     if(d.target>0){retMap[ret].target+=d.target;retMap[ret].storesWT++;}
   });
   const retailers=Object.values(retMap).map(r=>({
-    name:r.name,gmv:r.gmv,target:r.target,stores:r.stores,storesWT:r.storesWT,
+    name:r.name,gmv:r.gmv,fcst_gmv:r.fcst_gmv,target:r.target,stores:r.stores,storesWT:r.storesWT,
     ach:r.target>0?r.gmv/r.target*100:null,
-    gap:r.target>0?Math.max(0,r.target-r.gmv):0,
+    fcst_ach:r.target>0?r.fcst_gmv/r.target*100:null,
+    gap:r.target>0?Math.max(0,r.target-r.fcst_gmv):0,
   })).filter(r=>r.gmv>0).sort((a,b)=>{
     if(a.target>0&&b.target===0)return -1;
     if(a.target===0&&b.target>0)return 1;
-    return(a.ach||999)-(b.ach||999);
+    return(a.fcst_ach||999)-(b.fcst_ach||999);
   });
 
   // ── OVERALL VERDICT ─────────────────────────────────────────────────────────
@@ -3057,9 +3107,10 @@ function buildRiskView(){
   const sigBg=_achDisp==null?'rgba(107,114,128,.08)':_achDisp>=95?'rgba(34,197,94,.08)':_achDisp>=80?'rgba(245,158,11,.08)':'rgba(239,68,68,.08)';
   const progPctR=totTgt>0?Math.min(100,totGmv/totTgt*100):0;
   const gapToTgt=totTgt>totGmv?totTgt-totGmv:0;
-  const storesOnTrack=sd.filter(d=>d.tach!=null&&d.tach>=100).length;
-  const storesWatch=sd.filter(d=>d.tach!=null&&d.tach>=80&&d.tach<100).length;
-  const storesAtRisk=sd.filter(d=>d.tach!=null&&d.tach<80).length;
+  // Use forecast (EOM run-rate) for store bucketing
+  const storesOnTrack=sd.filter(d=>d.fcst_ach!=null&&d.fcst_ach>=100).length;
+  const storesWatch=sd.filter(d=>d.fcst_ach!=null&&d.fcst_ach>=80&&d.fcst_ach<100).length;
+  const storesAtRisk=sd.filter(d=>d.fcst_ach!=null&&d.fcst_ach<80).length;
   const storesNoTgt=sd.filter(d=>!d.target||d.target===0).length;
 
   // Retailer rows HTML
@@ -3088,55 +3139,71 @@ function buildRiskView(){
   // Right axis labels
   [0,50,100,150].forEach(_p=>{if(_p>_maxAch+10)return;const _y=_achY(_p);_rsvg+=`<text x="${_RW-_RPR+5}" y="${(_y+3).toFixed(1)}" fill="#484858" font-size="8.5" font-family="inherit">${_p}%</text>`;});
   // Bars + labels
-  const _achPts=[];
+  const _achPts=[];   // forecast line
+  const _mtdPts=[];   // current MTD line
   retailers.forEach((r,_i)=>{
     const _cx=_RPL+(_i+0.5)*_gW;
-    const _achC=r.ach==null?'#6b7280':r.ach>=100?'#22c55e':r.ach>=80?'#f59e0b':'#ef4444';
+    const _achC=r.fcst_ach==null?'#6b7280':r.fcst_ach>=100?'#22c55e':r.fcst_ach>=80?'#f59e0b':'#ef4444';
     // Target bar (left, gray)
     if(r.target>0){
       const _th=_RCH*Math.min(r.target/_maxVal,1),_ty=_RPT+_RCH-_th;
       _rsvg+=`<rect x="${(_cx-_bW-_gap/2).toFixed(1)}" y="${_ty.toFixed(1)}" width="${_bW}" height="${_th.toFixed(1)}" fill="#3a3a4a" rx="2" opacity=".9"/>`;
     }
-    // Actual bar (right, colored)
+    // Actual GMV bar (right, colored by forecast)
     const _gh=_RCH*Math.min(r.gmv/_maxVal,1),_gy=_RPT+_RCH-_gh;
     _rsvg+=`<rect x="${(_cx+_gap/2).toFixed(1)}" y="${_gy.toFixed(1)}" width="${_bW}" height="${_gh.toFixed(1)}" fill="${_achC}" rx="2" opacity=".85"/>`;
-    // Ach line point
-    if(r.ach!=null)_achPts.push([_cx,r.ach]);
+    // Forecast ach line point
+    if(r.fcst_ach!=null)_achPts.push([_cx,r.fcst_ach]);
+    // Current MTD ach line point
+    if(r.ach!=null)_mtdPts.push([_cx,r.ach]);
     // X label (abbreviated, rotated)
     const _sn=r.name.replace('Public Company Limited','').replace('Co., Ltd.','').replace('CO., LTD.','').replace('COMPANY LIMITED','').trim().replace(/\s*,\s*$/,'').trim().slice(0,13);
     const _lx=_cx.toFixed(1),_ly=(_RH-_RPB+16).toFixed(1);
     _rsvg+=`<text x="${_lx}" y="${_ly}" text-anchor="end" fill="#606070" font-size="8.5" font-family="inherit" transform="rotate(-40 ${_lx} ${_ly})">${_sn}</text>`;
   });
-  // Achievement % polyline
+  // Forecast % polyline (orange)
   if(_achPts.length>1){
     const _pts=_achPts.map(([_cx,_p])=>`${_cx.toFixed(1)},${_achY(_p).toFixed(1)}`).join(' ');
     _rsvg+=`<polyline points="${_pts}" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>`;
   }
+  // MTD % polyline (cyan, dashed)
+  if(_mtdPts.length>1){
+    const _pts2=_mtdPts.map(([_cx,_p])=>`${_cx.toFixed(1)},${_achY(_p).toFixed(1)}`).join(' ');
+    _rsvg+=`<polyline points="${_pts2}" fill="none" stroke="#38bdf8" stroke-width="1.4" stroke-dasharray="5,3" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>`;
+  }
+  // Forecast dots + labels
   _achPts.forEach(([_cx,_p])=>{
     const _ac=_p>=100?'#22c55e':_p>=80?'#f59e0b':'#ef4444';
     const _cy=_achY(_p);
     _rsvg+=`<circle cx="${_cx.toFixed(1)}" cy="${_cy.toFixed(1)}" r="4" fill="${_ac}" stroke="#18181b" stroke-width="1.5"/>`;
     _rsvg+=`<text x="${_cx.toFixed(1)}" y="${(_cy-8).toFixed(1)}" text-anchor="middle" fill="${_ac}" font-size="8" font-weight="700" font-family="inherit" stroke="#18181b" stroke-width="3" paint-order="stroke">${_p.toFixed(0)}%</text>`;
   });
+  // MTD dots + labels (offset up a little to avoid overlap)
+  _mtdPts.forEach(([_cx,_p])=>{
+    const _cy=_achY(_p);
+    _rsvg+=`<circle cx="${_cx.toFixed(1)}" cy="${_cy.toFixed(1)}" r="3" fill="#38bdf8" stroke="#18181b" stroke-width="1"/>`;
+    _rsvg+=`<text x="${(_cx+6).toFixed(1)}" y="${(_cy+4).toFixed(1)}" text-anchor="start" fill="#38bdf8" font-size="7.5" font-weight="600" font-family="inherit" stroke="#18181b" stroke-width="2.5" paint-order="stroke">${_p.toFixed(0)}%</text>`;
+  });
   // Legend
   _rsvg+=`<rect x="${_RPL}" y="5" width="10" height="8" fill="#3a3a4a" rx="1"/><text x="${_RPL+14}" y="13" fill="#606070" font-size="8.5" font-family="inherit">Target</text>`;
   _rsvg+=`<rect x="${_RPL+55}" y="5" width="10" height="8" fill="#22c55e" opacity=".85" rx="1"/><text x="${_RPL+69}" y="13" fill="#606070" font-size="8.5" font-family="inherit">GMV</text>`;
-  _rsvg+=`<line x1="${_RPL+108}" y1="9" x2="${_RPL+120}" y2="9" stroke="#f59e0b" stroke-width="1.8"/><circle cx="${_RPL+114}" cy="9" r="3.5" fill="#f59e0b"/><text x="${_RPL+124}" y="13" fill="#606070" font-size="8.5" font-family="inherit">Achievement %</text>`;
+  _rsvg+=`<line x1="${_RPL+108}" y1="9" x2="${_RPL+120}" y2="9" stroke="#f59e0b" stroke-width="1.8"/><circle cx="${_RPL+114}" cy="9" r="3.5" fill="#f59e0b"/><text x="${_RPL+124}" y="13" fill="#606070" font-size="8.5" font-family="inherit">Forecast Ach% (EOM)</text>`;
+  _rsvg+=`<line x1="${_RPL+242}" y1="9" x2="${_RPL+254}" y2="9" stroke="#38bdf8" stroke-width="1.4" stroke-dasharray="4,3"/><circle cx="${_RPL+248}" cy="9" r="3" fill="#38bdf8"/><text x="${_RPL+258}" y="13" fill="#606070" font-size="8.5" font-family="inherit">Current Ach% (MTD)</text>`;
   const retChartHTML=`<svg viewBox="0 0 ${_RW} ${_RH}" style="width:100%;height:auto;display:block;overflow:visible">${_rsvg}</svg>`;
 
 
-  // ── STORE QUADRANT (redesigned: chart + per-quadrant store list) ───────────
-  const quadStores=sd.filter(d=>d.tach!=null&&d.mom!=null);
-  const qStars  =quadStores.filter(d=>d.tach>=100&&(d.mom||0)>=0).sort((a,b)=>b.tach-a.tach);
-  const qMatures=quadStores.filter(d=>d.tach>=100&&(d.mom||0)<0).sort((a,b)=>a.mom-b.mom);
-  const qRises  =quadStores.filter(d=>d.tach<100&&(d.mom||0)>=0).sort((a,b)=>b.tach-a.tach);
-  const qCrits  =quadStores.filter(d=>d.tach<100&&(d.mom||0)<0).sort((a,b)=>a.tach-b.tach);
+  // ── STORE QUADRANT — uses fcst_ach (EOM forecast) for X-axis ───────────────
+  const quadStores=sd.filter(d=>d.fcst_ach!=null&&d.mom!=null);
+  const qStars  =quadStores.filter(d=>d.fcst_ach>=100&&(d.mom||0)>=0).sort((a,b)=>b.fcst_ach-a.fcst_ach);
+  const qMatures=quadStores.filter(d=>d.fcst_ach>=100&&(d.mom||0)<0).sort((a,b)=>a.mom-b.mom);
+  const qRises  =quadStores.filter(d=>d.fcst_ach<100&&(d.mom||0)>=0).sort((a,b)=>b.fcst_ach-a.fcst_ach);
+  const qCrits  =quadStores.filter(d=>d.fcst_ach<100&&(d.mom||0)<0).sort((a,b)=>a.fcst_ach-b.fcst_ach);
   const qStar=qStars.length,qMat=qMatures.length,qRise=qRises.length,qCrit=qCrits.length;
 
   // --- SVG scatter (compact) ---
   const qW=560,qH=240,qPL=46,qPR=18,qPT=18,qPB=32;
   const qCW=qW-qPL-qPR,qCH=qH-qPT-qPB;
-  const maxTach=Math.min(220,Math.max(150,...(quadStores.length?quadStores.map(d=>d.tach):[150])));
+  const maxTach=Math.min(220,Math.max(150,...(quadStores.length?quadStores.map(d=>d.fcst_ach):[150])));
   const maxMomV=Math.max(60,...(quadStores.length?quadStores.map(d=>Math.abs(d.mom||0)):[60]));
   const xQ=tval=>qPL+Math.min(1,Math.max(0,tval/maxTach))*qCW;
   const yQ=m=>qPT+qCH/2-Math.min(qCH/2,Math.max(-qCH/2,(m/maxMomV)*(qCH/2)));
@@ -3164,16 +3231,16 @@ function buildRiskView(){
   // Store dots with <title> tooltip
   const fvQ=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':Math.round(v)+'';
   quadStores.forEach(d=>{
-    const cx=xQ(d.tach),cy=yQ(d.mom||0);
-    const isTop=d.tach>=100&&(d.mom||0)>=0,isMat=d.tach>=100&&(d.mom||0)<0;
+    const cx=xQ(d.fcst_ach),cy=yQ(d.mom||0);
+    const isTop=d.fcst_ach>=100&&(d.mom||0)>=0,isMat=d.fcst_ach>=100&&(d.mom||0)<0;
     const col=isTop?'#4ade80':isMat?'#fbbf24':(d.mom||0)>=0?'#60a5fa':'#f87171';
-    const tip=`${d.name} | Ach: ${d.tach.toFixed(1)}% | MoM: ${(d.mom||0)>=0?'+':''}${(d.mom||0).toFixed(1)}% | GMV: ${fvQ(d.gmv)}`;
+    const tip=`${d.name} | Fcst: ${d.fcst_ach.toFixed(1)}% | MoM: ${(d.mom||0)>=0?'+':''}${(d.mom||0).toFixed(1)}% | GMV: ${fvQ(d.gmv)}`;
     qsvg+=`<g onmouseover="qHover('${d.id}',true)" onmouseout="qHover('${d.id}',false)" style="cursor:pointer"><title>${tip}</title><circle id="qc-${d.id}" data-col="${col}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3.5" fill="${col}" opacity=".7" stroke="${col}" stroke-width="0.5"/></g>`;
   });
   const quadSvgHTML=`<svg viewBox="0 0 ${qW} ${qH}" width="100%" style="display:block;cursor:crosshair">${qsvg}</svg>`;
 
   // --- Per-quadrant store rows (4 panels) ---
-  const _qr=(d,col)=>`<div data-qsid="${d.id}" onmouseenter="qHover('${d.id}',true)" onmouseleave="qHover('${d.id}',false)" style="display:grid;grid-template-columns:1fr 44px 52px;align-items:center;padding:5px 8px;border-radius:6px;margin-bottom:3px;background:rgba(255,255,255,.03);gap:4px;cursor:pointer;transition:background .15s,transform .12s"><span style="font-size:.6rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.name}">${d.name.replace('Xiaomi Authorized Store ','').replace('Xiaomi Store ','').replace(' Thailand','').split(' ').slice(0,2).join(' ')}</span><span style="font-size:.58rem;color:${col};font-weight:700;text-align:right;white-space:nowrap">${d.tach.toFixed(0)}%</span><span style="font-size:.58rem;color:${(d.mom||0)>=0?'#4ade80':'#f87171'};text-align:right;white-space:nowrap">${(d.mom||0)>=0?'+':''}${(d.mom||0).toFixed(1)}%</span></div>`;
+  const _qr=(d,col)=>`<div data-qsid="${d.id}" onmouseenter="qHover('${d.id}',true)" onmouseleave="qHover('${d.id}',false)" style="display:grid;grid-template-columns:1fr 44px 52px;align-items:center;padding:5px 8px;border-radius:6px;margin-bottom:3px;background:rgba(255,255,255,.03);gap:4px;cursor:pointer;transition:background .15s,transform .12s"><span style="font-size:.6rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.name}">${d.name.replace('Xiaomi Authorized Store ','').replace('Xiaomi Store ','').replace(' Thailand','').split(' ').slice(0,2).join(' ')}</span><span style="font-size:.58rem;color:${col};font-weight:700;text-align:right;white-space:nowrap">${d.fcst_ach.toFixed(0)}%</span><span style="font-size:.58rem;color:${(d.mom||0)>=0?'#4ade80':'#f87171'};text-align:right;white-space:nowrap">${(d.mom||0)>=0?'+':''}${(d.mom||0).toFixed(1)}%</span></div>`;
   const mkQRow=(arr,col,pid)=>{
     const vis=arr.slice(0,8),rest=arr.slice(8);
     let h=vis.map(d=>_qr(d,col)).join('');
@@ -3279,7 +3346,7 @@ function buildRiskView(){
 
 
   // ── SUMMARY BAR PRE-COMPUTED VARS ─────────────────────────────────────────
-  const _sbOnTrack=sd.filter(d=>d.tach!=null&&d.tach>=100).length;
+  const _sbOnTrack=sd.filter(d=>d.fcst_ach!=null&&d.fcst_ach>=100).length;
   const _sbAtRisk=atRiskStores.length;
   const _sbTotal=sd.length;
   const _sbSfDay=currentPace-neededPerDay;
@@ -3580,97 +3647,97 @@ var _AUG={
   }
 };
 
-var _SEP={"meta":{"month":"Sep","days":["Sep 1","Sep 2"],"de":2,"dm":30},"stores":{
-  "SQTH00071":{"sid":"SQTH00071","name":"Xiaomi Authorized Store Big C Supercenter Kamphaeng Phet  Kamphaeng Phet Thailand","days":[5167,3480],"cumul":8647,"vis":51,"cv":null,"mob":0,"ach":1.2,"target":751494,"mob_target":323142,"pad_target":90179,"aiot_target":338172,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":8647,"aiot_qty":5,"band":0,"watch":6188,"headphone":0,"white_goods":0,"tv":1990,"ecosystem":469,"other":0},
-  "SQTH00087":{"sid":"SQTH00087","name":"Xiaomi Authorized Store Central Northville Nonthaburi Thailand","days":[9990,16197],"cumul":26187,"vis":219,"cv":null,"mob":24688,"ach":2.1,"target":1237460,"mob_target":532108,"pad_target":148495,"aiot_target":556857,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":3,"pad":0,"pad_qty":0,"aiot":1499,"aiot_qty":1,"band":0,"watch":0,"headphone":1499,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00062":{"sid":"SQTH00062","name":"Xiaomi Authorized Store Big C Lamphun Thailand","days":[0,2290],"cumul":2290,"vis":103,"cv":null,"mob":0,"ach":0.4,"target":560487,"mob_target":241009,"pad_target":67258,"aiot_target":252219,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":2290,"aiot_qty":1,"band":0,"watch":2290,"headphone":0,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00095":{"sid":"SQTH00095","name":"Xiaomi Authorized Store Happitat Samut Prakan Thailand","days":[2098,699],"cumul":2797,"vis":110,"cv":null,"mob":0,"ach":0.2,"target":1183152,"mob_target":508755,"pad_target":141978,"aiot_target":532418,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":699,"pad_qty":0,"aiot":2098,"aiot_qty":2,"band":899,"watch":1199,"headphone":0,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00049":{"sid":"SQTH00049","name":"Xiaomi Authorized Store Central Plaza Salaya Nakhonpathom Thailand","days":[36289,27635],"cumul":63924,"vis":150,"cv":null,"mob":24998,"ach":4.0,"target":1609065,"mob_target":691898,"pad_target":193088,"aiot_target":724079,"highend_target":12,"highend":18499,"highend_qty":1,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":38926,"aiot_qty":15,"band":0,"watch":5789,"headphone":0,"white_goods":0,"tv":0,"ecosystem":33137,"other":0},
-  "SQTH00063":{"sid":"SQTH00063","name":"Xiaomi Authorized Store Terminal 21 Pattaya Chonburi Thailand","days":[24983,112587],"cumul":137570,"vis":407,"cv":null,"mob":50970,"ach":14.9,"target":921796,"mob_target":396372,"pad_target":110616,"aiot_target":414808,"highend_target":7,"highend":50970,"highend_qty":3,"mob_qty":3,"pad":5899,"pad_qty":1,"aiot":80701,"aiot_qty":51,"band":6297,"watch":5789,"headphone":10823,"white_goods":0,"tv":9990,"ecosystem":40406,"other":0},
-  "SQTH00074":{"sid":"SQTH00074","name":"Xiaomi Authorized Store Robinson Kanchanaburi Kanchanaburi Thailand","days":[8467,2938],"cumul":11405,"vis":95,"cv":null,"mob":0,"ach":1.4,"target":841673,"mob_target":361919,"pad_target":101001,"aiot_target":378753,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":0,"pad":6799,"pad_qty":1,"aiot":4606,"aiot_qty":4,"band":0,"watch":0,"headphone":2967,"white_goods":0,"tv":0,"ecosystem":1639,"other":0},
-  "SQTH00085":{"sid":"SQTH00085","name":"Xiaomi Authorized Store Big C supercenter Nakhon Ratchasima 2 Nakhonratchasima Thailand","days":[15297,1959],"cumul":17256,"vis":115,"cv":null,"mob":14298,"ach":2.7,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":2958,"aiot_qty":4,"band":0,"watch":1490,"headphone":0,"white_goods":0,"tv":0,"ecosystem":999,"other":0},
-  "SQTH00017":{"sid":"SQTH00017","name":"Xiaomi Authorized Store IT Mall Fortune Town Bangkok Thailand","days":[18811,21922],"cumul":40733,"vis":224,"cv":null,"mob":12498,"ach":2.0,"target":2010757,"mob_target":864625,"pad_target":241291,"aiot_target":904840,"highend_target":14,"highend":0,"highend_qty":0,"mob_qty":2,"pad":8999,"pad_qty":1,"aiot":19236,"aiot_qty":16,"band":0,"watch":3780,"headphone":3536,"white_goods":3147,"tv":0,"ecosystem":6276,"other":0},
-  "SQTH00051":{"sid":"SQTH00051","name":"Xiaomi Authorized Store Central Suratthani Thailand","days":[51388,33103],"cumul":84491,"vis":155,"cv":null,"mob":6699,"ach":4.6,"target":1838043,"mob_target":790358,"pad_target":220565,"aiot_target":827119,"highend_target":13,"highend":0,"highend_qty":0,"mob_qty":1,"pad":21990,"pad_qty":1,"aiot":55802,"aiot_qty":9,"band":5097,"watch":0,"headphone":3698,"white_goods":23489,"tv":0,"ecosystem":23518,"other":0},
-  "SQTH00091":{"sid":"SQTH00091","name":"Xiaomi Authorized Store Big C Lopburi 1 Thailand","days":[49797,32827],"cumul":82624,"vis":0,"cv":null,"mob":42998,"ach":8.7,"target":945880,"mob_target":406729,"pad_target":113506,"aiot_target":425646,"highend_target":10,"highend":42998,"highend_qty":2,"mob_qty":2,"pad":37788,"pad_qty":3,"aiot":1838,"aiot_qty":4,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":0,"ecosystem":1838,"other":0},
-  "SQTH00032":{"sid":"SQTH00032","name":"Xiaomi Authorized Store Central Festival Eastville Bangkok Thailand","days":[83044,41207],"cumul":124251,"vis":217,"cv":null,"mob":32498,"ach":6.4,"target":1930990,"mob_target":830326,"pad_target":231719,"aiot_target":868945,"highend_target":13,"highend":24499,"highend_qty":1,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":91753,"aiot_qty":44,"band":1699,"watch":6998,"headphone":3036,"white_goods":34478,"tv":0,"ecosystem":41075,"other":0},
-  "SQTH00046":{"sid":"SQTH00046","name":"Xiaomi Authorized Store The Mall Nakhonratchasima Nakhonratchasima Thailand","days":[3665,1968],"cumul":5633,"vis":143,"cv":null,"mob":0,"ach":0.5,"target":1150444,"mob_target":494691,"pad_target":138053,"aiot_target":517700,"highend_target":12,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":5633,"aiot_qty":7,"band":0,"watch":0,"headphone":698,"white_goods":0,"tv":0,"ecosystem":4935,"other":0},
-  "SQTH00068":{"sid":"SQTH00068","name":"Xiaomi Authorized Store Lotus's Banbueng Chonburi Thailand","days":[17897,24499],"cumul":42396,"vis":79,"cv":null,"mob":36498,"ach":5.0,"target":851693,"mob_target":366228,"pad_target":102203,"aiot_target":383262,"highend_target":7,"highend":24499,"highend_qty":1,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":5898,"aiot_qty":2,"band":0,"watch":3499,"headphone":0,"white_goods":0,"tv":0,"ecosystem":2399,"other":0},
-  "SQTH00007":{"sid":"SQTH00007","name":"Xiaomi Authorized Store The Mall Lifestore Bangkapi Bangkok Thailand","days":[39821,3479],"cumul":43300,"vis":211,"cv":null,"mob":31489,"ach":3.1,"target":1392178,"mob_target":598637,"pad_target":167061,"aiot_target":626480,"highend_target":14,"highend":18499,"highend_qty":1,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":11811,"aiot_qty":11,"band":999,"watch":2980,"headphone":878,"white_goods":1049,"tv":0,"ecosystem":5905,"other":0},
-  "SQTH00072":{"sid":"SQTH00072","name":"Xiaomi Authorized Store Robinson SakonnakhonThailand","days":[35388,30895],"cumul":66283,"vis":91,"cv":null,"mob":37197,"ach":7.5,"target":881753,"mob_target":379154,"pad_target":105810,"aiot_target":396789,"highend_target":7,"highend":18499,"highend_qty":1,"mob_qty":3,"pad":13990,"pad_qty":1,"aiot":15096,"aiot_qty":6,"band":2899,"watch":11498,"headphone":699,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00057":{"sid":"SQTH00057","name":"Xiaomi Authorized Store Central Plaza Airport Chiangmai Chiangmai Thailand","days":[22315,47734],"cumul":70049,"vis":180,"cv":null,"mob":37989,"ach":5.9,"target":1191181,"mob_target":512208,"pad_target":142942,"aiot_target":536031,"highend_target":10,"highend":29990,"highend_qty":1,"mob_qty":2,"pad":17139,"pad_qty":1,"aiot":14921,"aiot_qty":13,"band":0,"watch":2290,"headphone":4497,"white_goods":0,"tv":3089,"ecosystem":3546,"other":0},
-  "SQTH00037":{"sid":"SQTH00037","name":"Xiaomi Authorized Store Central Plaza Rama 2 Bangkok Thailand","days":[60725,64062],"cumul":124787,"vis":202,"cv":null,"mob":54988,"ach":5.9,"target":2123653,"mob_target":913171,"pad_target":254838,"aiot_target":955644,"highend_target":16,"highend":44998,"highend_qty":2,"mob_qty":3,"pad":20689,"pad_qty":1,"aiot":49110,"aiot_qty":24,"band":7497,"watch":11999,"headphone":358,"white_goods":9479,"tv":0,"ecosystem":15779,"other":0},
-  "MITH78952":{"sid":"MITH78952","name":"Xiaomi Store The Mall Lifestore Ngamwongwan Nonthaburi Thailand","days":[10465,64949],"cumul":75414,"vis":245,"cv":null,"mob":24499,"ach":2.8,"target":2687582,"mob_target":1155660,"pad_target":322510,"aiot_target":1209412,"highend_target":19,"highend":24499,"highend_qty":1,"mob_qty":1,"pad":26789,"pad_qty":2,"aiot":24126,"aiot_qty":16,"band":0,"watch":1490,"headphone":3076,"white_goods":0,"tv":3598,"ecosystem":12295,"other":0},
-  "SQTH00025":{"sid":"SQTH00025","name":"Xiaomi Authorized Store MAYA Lifestyle Shopping Center Chiangmai Thailand","days":[5746,9233],"cumul":14979,"vis":247,"cv":null,"mob":0,"ach":1.2,"target":1295021,"mob_target":556859,"pad_target":155402,"aiot_target":582759,"highend_target":11,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":14979,"aiot_qty":13,"band":1699,"watch":3780,"headphone":3404,"white_goods":0,"tv":0,"ecosystem":6096,"other":0},
-  "SQTH00096":{"sid":"SQTH00096","name":"Xiaomi Authorized Store Central Lampang Thailand","days":[26789,37294],"cumul":64083,"vis":136,"cv":null,"mob":50998,"ach":6.3,"target":1014016,"mob_target":436027,"pad_target":121682,"aiot_target":456307,"highend_target":7,"highend":50998,"highend_qty":2,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":13085,"aiot_qty":7,"band":0,"watch":2290,"headphone":799,"white_goods":6490,"tv":0,"ecosystem":3506,"other":0},
-  "MITH78951":{"sid":"MITH78951","name":"Xiaomi Store Siam Paragon Bangkok Thailand","days":[910775,89776],"cumul":1000551,"vis":553,"cv":null,"mob":888455,"ach":29.1,"target":3435910,"mob_target":1477441,"pad_target":412309,"aiot_target":1546159,"highend_target":20,"highend":67489,"highend_qty":2,"mob_qty":136,"pad":52129,"pad_qty":2,"aiot":59967,"aiot_qty":25,"band":1699,"watch":0,"headphone":2568,"white_goods":2798,"tv":28990,"ecosystem":12241,"other":379},
-  "SQTH00086":{"sid":"SQTH00086","name":"Xiaomi Authorized Store Terminal 21 Korat Korat Thailand","days":[5168,3897],"cumul":9065,"vis":41,"cv":null,"mob":0,"ach":1.2,"target":771534,"mob_target":331760,"pad_target":92584,"aiot_target":347190,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":9065,"aiot_qty":6,"band":1699,"watch":6188,"headphone":179,"white_goods":0,"tv":0,"ecosystem":999,"other":0},
-  "SQTH00003":{"sid":"SQTH00003","name":"Xiaomi Authorized Store Future Park Rangsit 2F Bangkok Thailand","days":[27885,48040],"cumul":75925,"vis":189,"cv":null,"mob":26499,"ach":4.4,"target":1733337,"mob_target":745335,"pad_target":208000,"aiot_target":780001,"highend_target":13,"highend":26499,"highend_qty":1,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":49426,"aiot_qty":18,"band":5097,"watch":15768,"headphone":0,"white_goods":22695,"tv":0,"ecosystem":5866,"other":0},
-  "SQTH00044":{"sid":"SQTH00044","name":"Xiaomi Authorized Store Robinson Lifestyle Thalang Phuket Thailand","days":[61285,50072],"cumul":111357,"vis":134,"cv":null,"mob":29990,"ach":8.0,"target":1397747,"mob_target":601031,"pad_target":167730,"aiot_target":628986,"highend_target":12,"highend":29990,"highend_qty":1,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":81367,"aiot_qty":48,"band":7497,"watch":3499,"headphone":1347,"white_goods":0,"tv":6570,"ecosystem":54290,"other":0},
-  "SQTH00078":{"sid":"SQTH00078","name":"Xiaomi Authorized Store Robinson Sriracha Chonburi Thailand","days":[20998,0],"cumul":20998,"vis":71,"cv":null,"mob":11999,"ach":2.1,"target":1001992,"mob_target":430856,"pad_target":120239,"aiot_target":450896,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":1,"pad":8999,"pad_qty":1,"aiot":0,"aiot_qty":1,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00093":{"sid":"SQTH00093","name":"Xiaomi Authorized Store Central Ubonratchathani Ubonratchathani Thailand","days":[24793,23045],"cumul":47838,"vis":112,"cv":null,"mob":0,"ach":4.3,"target":1102191,"mob_target":473942,"pad_target":132263,"aiot_target":495986,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":17990,"pad_qty":1,"aiot":29848,"aiot_qty":12,"band":6297,"watch":17497,"headphone":1157,"white_goods":0,"tv":3199,"ecosystem":1698,"other":0},
-  "SQTH00089":{"sid":"SQTH00089","name":"Xiaomi Authorized Store Lotus Srinakarin Samut Prakan Thailand","days":[799,3688],"cumul":4487,"vis":56,"cv":null,"mob":0,"ach":0.7,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":4487,"aiot_qty":4,"band":0,"watch":1490,"headphone":0,"white_goods":799,"tv":0,"ecosystem":899,"other":0},
-  "SQTH00033":{"sid":"SQTH00033","name":"Xiaomi Authorized Store Central Festival Hatyai Songkhla Thailand","days":[21378,11596],"cumul":32974,"vis":210,"cv":null,"mob":6699,"ach":2.0,"target":1684616,"mob_target":724385,"pad_target":202154,"aiot_target":758077,"highend_target":12,"highend":0,"highend_qty":0,"mob_qty":1,"pad":13490,"pad_qty":1,"aiot":12785,"aiot_qty":6,"band":2899,"watch":0,"headphone":0,"white_goods":7589,"tv":649,"ecosystem":1648,"other":0},
-  "SQTH00009":{"sid":"SQTH00009","name":"Xiaomi Authorized Store Big C Extra Ratchadaphisek Bangkok Thailand","days":[27686,23490],"cumul":51176,"vis":120,"cv":null,"mob":33988,"ach":6.7,"target":766889,"mob_target":329762,"pad_target":92027,"aiot_target":345100,"highend_target":8,"highend":0,"highend_qty":0,"mob_qty":3,"pad":0,"pad_qty":0,"aiot":17188,"aiot_qty":12,"band":6797,"watch":0,"headphone":2568,"white_goods":0,"tv":0,"ecosystem":5824,"other":0},
-  "SQTH00038":{"sid":"SQTH00038","name":"Xiaomi Authorized Store Central World Bangkok Thailand","days":[35881,98258],"cumul":134139,"vis":637,"cv":null,"mob":39488,"ach":3.2,"target":4135769,"mob_target":1778381,"pad_target":496292,"aiot_target":1861096,"highend_target":23,"highend":18499,"highend_qty":1,"mob_qty":3,"pad":21990,"pad_qty":1,"aiot":72661,"aiot_qty":50,"band":3398,"watch":11999,"headphone":2897,"white_goods":799,"tv":2847,"ecosystem":35790,"other":0},
-  "SQTH00027":{"sid":"SQTH00027","name":"Xiaomi Authorized Store Big C Supercenter Hangdong Chiang Mai Thailand","days":[45913,45903],"cumul":91816,"vis":98,"cv":null,"mob":46997,"ach":11.3,"target":815089,"mob_target":350488,"pad_target":97811,"aiot_target":366790,"highend_target":12,"highend":26499,"highend_qty":1,"mob_qty":3,"pad":28789,"pad_qty":2,"aiot":16030,"aiot_qty":12,"band":2899,"watch":1199,"headphone":229,"white_goods":0,"tv":2390,"ecosystem":9313,"other":0},
-  "SQTH00065":{"sid":"SQTH00065","name":"Xiaomi Authorized Store Lotus's Krabi KrabiThailand","days":[0,0],"cumul":0,"vis":0,"cv":null,"mob":0,"ach":0.0,"target":601195,"mob_target":258514,"pad_target":72143,"aiot_target":270538,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":0,"aiot_qty":0,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00006":{"sid":"SQTH00006","name":"Xiaomi Authorized Store Market Village Suvarnabhumi Samutprakan Thailand","days":[115014,0],"cumul":115014,"vis":94,"cv":null,"mob":69497,"ach":11.1,"target":1032457,"mob_target":443957,"pad_target":123895,"aiot_target":464606,"highend_target":10,"highend":69497,"highend_qty":3,"mob_qty":3,"pad":7848,"pad_qty":1,"aiot":37669,"aiot_qty":23,"band":6297,"watch":13686,"headphone":3055,"white_goods":1899,"tv":2590,"ecosystem":5745,"other":0},
-  "SQTH00079":{"sid":"SQTH00079","name":"Xiaomi Authorized Store Robinson Bowin Chonburi Thailand","days":[48187,23596],"cumul":71783,"vis":95,"cv":null,"mob":35498,"ach":8.0,"target":894278,"mob_target":384539,"pad_target":107313,"aiot_target":402425,"highend_target":10,"highend":24499,"highend_qty":1,"mob_qty":2,"pad":21990,"pad_qty":1,"aiot":14295,"aiot_qty":5,"band":0,"watch":1799,"headphone":0,"white_goods":0,"tv":0,"ecosystem":3697,"other":0},
-  "SQTH00018":{"sid":"SQTH00018","name":"Xiaomi Authorized Store Robinson Lifestyle Suphanburi Thailand","days":[37064,1198],"cumul":38262,"vis":95,"cv":null,"mob":26499,"ach":3.3,"target":1148975,"mob_target":494059,"pad_target":137877,"aiot_target":517039,"highend_target":12,"highend":26499,"highend_qty":1,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":11763,"aiot_qty":7,"band":0,"watch":6199,"headphone":0,"white_goods":0,"tv":0,"ecosystem":3767,"other":0},
-  "SQTH00034":{"sid":"SQTH00034","name":"Xiaomi Authorized Store Central Festival Pattaya Beach Chonburi Thailand","days":[48106,14847],"cumul":62953,"vis":404,"cv":null,"mob":7999,"ach":2.6,"target":2427806,"mob_target":1043957,"pad_target":291337,"aiot_target":1092513,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":54954,"aiot_qty":32,"band":0,"watch":6596,"headphone":2336,"white_goods":7789,"tv":3689,"ecosystem":27377,"other":0},
-  "SQTH00012":{"sid":"SQTH00012","name":"Xiaomi Authorized Store Central Westville Nonthaburi Thailand","days":[17681,18995],"cumul":36676,"vis":114,"cv":null,"mob":4999,"ach":3.0,"target":1209003,"mob_target":519871,"pad_target":145080,"aiot_target":544051,"highend_target":8,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":31677,"aiot_qty":16,"band":4598,"watch":2290,"headphone":2427,"white_goods":4989,"tv":0,"ecosystem":17373,"other":0},
-  "SQTH00040":{"sid":"SQTH00040","name":"Xiaomi Authorized Store Robinson Srisamarn Nontaburi Thailand","days":[16354,0],"cumul":16354,"vis":154,"cv":null,"mob":0,"ach":1.5,"target":1061879,"mob_target":456608,"pad_target":127426,"aiot_target":477846,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":16354,"aiot_qty":7,"band":0,"watch":8797,"headphone":0,"white_goods":0,"tv":3199,"ecosystem":4358,"other":0},
-  "SQTH00069":{"sid":"SQTH00069","name":"Xiaomi Authorized Store Market Village Huahin Prachuapkhirikhan Thailand","days":[15495,2378],"cumul":17873,"vis":138,"cv":null,"mob":5999,"ach":1.9,"target":936862,"mob_target":402851,"pad_target":112424,"aiot_target":421588,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":11874,"aiot_qty":8,"band":0,"watch":5499,"headphone":0,"white_goods":0,"tv":0,"ecosystem":6375,"other":0},
-  "SQTH00036":{"sid":"SQTH00036","name":"Xiaomi Authorized Store Central Plaza Chonburi Chonburi Thailand","days":[3988,6489],"cumul":10477,"vis":145,"cv":null,"mob":0,"ach":0.8,"target":1373332,"mob_target":590533,"pad_target":164800,"aiot_target":617999,"highend_target":8,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":10477,"aiot_qty":5,"band":999,"watch":0,"headphone":0,"white_goods":5490,"tv":1990,"ecosystem":1998,"other":0},
-  "SQTH00053":{"sid":"SQTH00053","name":"Xiaomi Authorized Store Big C Hatyai Songkhla Thailand","days":[6199,1360],"cumul":7559,"vis":63,"cv":null,"mob":0,"ach":1.5,"target":507821,"mob_target":218363,"pad_target":60939,"aiot_target":228520,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":7559,"aiot_qty":2,"band":0,"watch":6199,"headphone":0,"white_goods":0,"tv":0,"ecosystem":1360,"other":0},
-  "SQTH00045":{"sid":"SQTH00045","name":"Xiaomi Authorized Store Central Chiangrai Chiangrai Thailand","days":[10457,29372],"cumul":39829,"vis":169,"cv":null,"mob":18997,"ach":4.1,"target":971719,"mob_target":417839,"pad_target":116606,"aiot_target":437273,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":3,"pad":0,"pad_qty":0,"aiot":20832,"aiot_qty":12,"band":0,"watch":11968,"headphone":0,"white_goods":0,"tv":0,"ecosystem":8864,"other":0},
-  "SQTH00092":{"sid":"SQTH00092","name":"Xiaomi Authorized Store V Square Nakhonsawan Nakhonsawan Thailand","days":[0,1799],"cumul":1799,"vis":49,"cv":null,"mob":0,"ach":0.2,"target":955900,"mob_target":411037,"pad_target":114708,"aiot_target":430155,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":1799,"aiot_qty":1,"band":0,"watch":1799,"headphone":0,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00035":{"sid":"SQTH00035","name":"Xiaomi Authorized Store Central Chaengwattana Nonthaburi Thailand","days":[65252,27531],"cumul":92783,"vis":211,"cv":null,"mob":51989,"ach":5.9,"target":1582157,"mob_target":680327,"pad_target":189859,"aiot_target":711971,"highend_target":14,"highend":44990,"highend_qty":1,"mob_qty":1,"pad":6499,"pad_qty":1,"aiot":34295,"aiot_qty":18,"band":2899,"watch":6998,"headphone":3126,"white_goods":9780,"tv":1990,"ecosystem":7503,"other":0},
-  "SQTH00058":{"sid":"SQTH00058","name":"Xiaomi Authorized Store Ayutthaya City Park Ayutthaya Thailand","days":[10464,43298],"cumul":53762,"vis":0,"cv":null,"mob":24499,"ach":4.9,"target":1096385,"mob_target":471445,"pad_target":131566,"aiot_target":493373,"highend_target":7,"highend":24499,"highend_qty":1,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":29263,"aiot_qty":7,"band":0,"watch":5397,"headphone":369,"white_goods":0,"tv":3199,"ecosystem":20298,"other":0},
-  "SQTH00075":{"sid":"SQTH00075","name":"Xiaomi Authorized Store Lotus Amata Plus Mall Chonburi Thailand","days":[36216,17622],"cumul":53838,"vis":58,"cv":null,"mob":9990,"ach":5.4,"target":1001992,"mob_target":430856,"pad_target":120239,"aiot_target":450896,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":43848,"aiot_qty":15,"band":0,"watch":4089,"headphone":2598,"white_goods":6490,"tv":17990,"ecosystem":8735,"other":0},
-  "SQTH00056":{"sid":"SQTH00056","name":"Xiaomi Authorized Store The Mall Thapra Bangkok Thailand","days":[2048,1369],"cumul":3417,"vis":174,"cv":null,"mob":0,"ach":0.4,"target":819039,"mob_target":352187,"pad_target":98285,"aiot_target":368567,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":3417,"aiot_qty":3,"band":999,"watch":0,"headphone":0,"white_goods":1049,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00028":{"sid":"SQTH00028","name":"Xiaomi Authorized Store Big C Supercenter Phitsanulok Thailand","days":[0,1499],"cumul":1499,"vis":53,"cv":null,"mob":0,"ach":0.2,"target":681277,"mob_target":292949,"pad_target":81753,"aiot_target":306574,"highend_target":8,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":1499,"aiot_qty":1,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":0,"ecosystem":1499,"other":0},
-  "SQTH00008":{"sid":"SQTH00008","name":"Xiaomi Authorized Store Fashion Island Bangkok Thailand","days":[48289,13994],"cumul":62283,"vis":294,"cv":null,"mob":18998,"ach":4.2,"target":1483506,"mob_target":637908,"pad_target":178021,"aiot_target":667578,"highend_target":12,"highend":0,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":43285,"aiot_qty":38,"band":2990,"watch":31174,"headphone":2397,"white_goods":0,"tv":649,"ecosystem":4476,"other":0},
-  "SQTH00015":{"sid":"SQTH00015","name":"Xiaomi Authorized Store Seacon Bangkae Bangkok Thailand","days":[21848,90255],"cumul":112103,"vis":354,"cv":null,"mob":29498,"ach":5.5,"target":2026463,"mob_target":871379,"pad_target":243176,"aiot_target":911908,"highend_target":12,"highend":21499,"highend_qty":1,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":82605,"aiot_qty":85,"band":1998,"watch":5270,"headphone":19950,"white_goods":40239,"tv":0,"ecosystem":14549,"other":0},
-  "SQTH00099":{"sid":"SQTH00099","name":"Xiaomi Authorized Store Lotus's Plus Udon Thani Thailand","days":[0,0],"cumul":0,"vis":0,"cv":null,"mob":0,"ach":0.0,"target":394384,"mob_target":169585,"pad_target":47326,"aiot_target":177473,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":0,"aiot_qty":0,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00030":{"sid":"SQTH00030","name":"Xiaomi Authorized Store Central Westgate Nonthaburi Thailand","days":[140870,21495],"cumul":162365,"vis":326,"cv":null,"mob":18499,"ach":7.4,"target":2203637,"mob_target":947564,"pad_target":264436,"aiot_target":991637,"highend_target":7,"highend":18499,"highend_qty":1,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":143866,"aiot_qty":36,"band":0,"watch":0,"headphone":3650,"white_goods":102890,"tv":0,"ecosystem":37326,"other":0},
-  "SQTH00041":{"sid":"SQTH00041","name":"Xiaomi Authorized Store Central Nakhonsithammarat Nakhonsithammarat Thailand","days":[17277,14990],"cumul":32267,"vis":111,"cv":null,"mob":29980,"ach":2.3,"target":1425062,"mob_target":612777,"pad_target":171007,"aiot_target":641278,"highend_target":12,"highend":0,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":2287,"aiot_qty":3,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":0,"ecosystem":1818,"other":0},
-  "SQTH00010":{"sid":"SQTH00010","name":"Xiaomi Authorized Store Big C Imperial Samrong Samutprakan Thailand","days":[17636,4988],"cumul":22624,"vis":132,"cv":null,"mob":12990,"ach":2.1,"target":1057755,"mob_target":454835,"pad_target":126931,"aiot_target":475990,"highend_target":13,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":9634,"aiot_qty":7,"band":999,"watch":2689,"headphone":0,"white_goods":0,"tv":0,"ecosystem":4447,"other":0},
-  "SQTH00073":{"sid":"SQTH00073","name":"Xiaomi Authorized Store Central Khonkaen Campus Khonkaen Thailand","days":[12098,8254],"cumul":20352,"vis":0,"cv":null,"mob":0,"ach":2.4,"target":851693,"mob_target":366228,"pad_target":102203,"aiot_target":383262,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":0,"pad":6799,"pad_qty":1,"aiot":13553,"aiot_qty":7,"band":0,"watch":0,"headphone":6098,"white_goods":3099,"tv":1699,"ecosystem":2657,"other":0},
-  "MITH00002":{"sid":"MITH00002","name":"Xiaomi Store Dusit Central Park Bangkok Thailand","days":[134954,31905],"cumul":166859,"vis":239,"cv":null,"mob":106494,"ach":5.3,"target":3159548,"mob_target":1358606,"pad_target":379146,"aiot_target":1421797,"highend_target":12,"highend":79497,"highend_qty":3,"mob_qty":6,"pad":19490,"pad_qty":1,"aiot":40875,"aiot_qty":32,"band":8697,"watch":0,"headphone":699,"white_goods":7539,"tv":0,"ecosystem":18543,"other":0},
-  "SQTH00094":{"sid":"SQTH00094","name":"Xiaomi Authorized Store CentralBangna Bangkok Thailand","days":[0,0],"cumul":0,"vis":0,"cv":null,"mob":0,"ach":0.0,"target":492980,"mob_target":211981,"pad_target":59158,"aiot_target":221841,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":0,"aiot_qty":0,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
-  "SQTH00019":{"sid":"SQTH00019","name":"Xiaomi Authorized Store One Bangkok Bangkok Thailand","days":[11033,17536],"cumul":28569,"vis":155,"cv":null,"mob":0,"ach":1.8,"target":1556785,"mob_target":669418,"pad_target":186814,"aiot_target":700553,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":28569,"aiot_qty":23,"band":2698,"watch":4989,"headphone":3776,"white_goods":0,"tv":2590,"ecosystem":10049,"other":0},
-  "SQTH00059":{"sid":"SQTH00059","name":"Xiaomi Authorized Store Lotus's Chumphon Thailand","days":[0,8097],"cumul":8097,"vis":62,"cv":null,"mob":0,"ach":1.6,"target":514732,"mob_target":221335,"pad_target":61768,"aiot_target":231629,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":8097,"aiot_qty":3,"band":1699,"watch":0,"headphone":0,"white_goods":0,"tv":6398,"ecosystem":0,"other":0},
-  "SQTH00098":{"sid":"SQTH00098","name":"Xiaomi Authorized Store Central Korat Korat Thailand","days":[16367,499],"cumul":16866,"vis":75,"cv":null,"mob":0,"ach":1.9,"target":887364,"mob_target":381567,"pad_target":106484,"aiot_target":399314,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":16866,"aiot_qty":4,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":499,"ecosystem":16367,"other":0},
-  "MITH00003":{"sid":"MITH00003","name":"Xiaomi Store Central Pinklao Bangkok Thailand","days":[33518,103585],"cumul":137103,"vis":276,"cv":null,"mob":91976,"ach":4.5,"target":3024375,"mob_target":1300481,"pad_target":362925,"aiot_target":1360969,"highend_target":18,"highend":42998,"highend_qty":2,"mob_qty":6,"pad":13990,"pad_qty":1,"aiot":31137,"aiot_qty":26,"band":4598,"watch":7279,"headphone":2556,"white_goods":3997,"tv":0,"ecosystem":7361,"other":0},
-  "SQTH00021":{"sid":"SQTH00021","name":"Xiaomi Authorized Store Mega Bangna Samutprakarn Thailand","days":[183535,82600],"cumul":266135,"vis":417,"cv":null,"mob":113775,"ach":6.0,"target":4462432,"mob_target":1918846,"pad_target":535492,"aiot_target":2008094,"highend_target":20,"highend":88996,"highend_qty":4,"mob_qty":7,"pad":0,"pad_qty":0,"aiot":152360,"aiot_qty":85,"band":1998,"watch":18576,"headphone":10514,"white_goods":62256,"tv":11771,"ecosystem":39182,"other":0},
-  "SQTH00052":{"sid":"SQTH00052","name":"Xiaomi Authorized Store Big C Rama 2 Bangkok Thailand","days":[17445,26499],"cumul":43944,"vis":65,"cv":null,"mob":38498,"ach":6.0,"target":737110,"mob_target":316957,"pad_target":88453,"aiot_target":331700,"highend_target":10,"highend":26499,"highend_qty":1,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":5446,"aiot_qty":6,"band":0,"watch":0,"headphone":799,"white_goods":0,"tv":3199,"ecosystem":1448,"other":0},
-  "SQTH00005":{"sid":"SQTH00005","name":"Xiaomi Authorized Store Zeer Rangsit Pathumthani Thailand","days":[8954,15634],"cumul":24588,"vis":113,"cv":null,"mob":7499,"ach":2.2,"target":1097842,"mob_target":472072,"pad_target":131741,"aiot_target":494029,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":17089,"aiot_qty":12,"band":0,"watch":8197,"headphone":0,"white_goods":0,"tv":0,"ecosystem":8892,"other":0},
-  "SQTH00064":{"sid":"SQTH00064","name":"Xiaomi Authorized Store Terminal 21 Asoke Bangkok Thailand","days":[49314,22145],"cumul":71459,"vis":122,"cv":null,"mob":38498,"ach":8.8,"target":812920,"mob_target":349556,"pad_target":97550,"aiot_target":365814,"highend_target":13,"highend":26499,"highend_qty":1,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":32961,"aiot_qty":17,"band":1699,"watch":7999,"headphone":2297,"white_goods":1399,"tv":16520,"ecosystem":1848,"other":0},
-  "SQTH00054":{"sid":"SQTH00054","name":"Xiaomi Authorized Store Big C Phuket Phuket Thailand","days":[104693,28519],"cumul":133212,"vis":169,"cv":null,"mob":23497,"ach":17.1,"target":780809,"mob_target":335748,"pad_target":93697,"aiot_target":351364,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":109715,"aiot_qty":64,"band":4598,"watch":0,"headphone":1598,"white_goods":13676,"tv":13436,"ecosystem":52395,"other":0},
-  "SQTH00061":{"sid":"SQTH00061","name":"Xiaomi Authorized Store Lotus's Pranburi Prachuapkhirikhan Thailand","days":[5589,6199],"cumul":11788,"vis":60,"cv":null,"mob":0,"ach":2.1,"target":555732,"mob_target":238965,"pad_target":66688,"aiot_target":250079,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":11788,"aiot_qty":3,"band":0,"watch":6199,"headphone":0,"white_goods":0,"tv":5589,"ecosystem":0,"other":0},
-  "SQTH00020":{"sid":"SQTH00020","name":"Xiaomi Authorized Store Robinson Lifestyle Latkrabang Bangkok Thailand","days":[29737,58631],"cumul":88368,"vis":74,"cv":null,"mob":20497,"ach":9.2,"target":955636,"mob_target":410923,"pad_target":114676,"aiot_target":430036,"highend_target":8,"highend":0,"highend_qty":0,"mob_qty":3,"pad":0,"pad_qty":0,"aiot":67871,"aiot_qty":41,"band":3398,"watch":17983,"headphone":1677,"white_goods":9097,"tv":2590,"ecosystem":27262,"other":0},
-  "SQTH00088":{"sid":"SQTH00088","name":"Xiaomi Authorized Store Central Rayong Rayong Thailand","days":[13940,32269],"cumul":46209,"vis":0,"cv":null,"mob":14990,"ach":3.8,"target":1212410,"mob_target":521336,"pad_target":145489,"aiot_target":545585,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":31219,"aiot_qty":13,"band":4598,"watch":2290,"headphone":1299,"white_goods":14989,"tv":3199,"ecosystem":4245,"other":0},
-  "SQTH00082":{"sid":"SQTH00082","name":"Xiaomi Authorized Store Lotus Rama 4 Bangkok Thailand","days":[31288,0],"cumul":31288,"vis":135,"cv":null,"mob":11598,"ach":5.0,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":5000,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":15135,"aiot_qty":9,"band":999,"watch":5579,"headphone":179,"white_goods":0,"tv":0,"ecosystem":6580,"other":0},
-  "SQTH00066":{"sid":"SQTH00066","name":"Xiaomi Authorized Store Central Bangrak Bangkok Thailand","days":[11457,15254],"cumul":26711,"vis":173,"cv":null,"mob":15198,"ach":2.7,"target":1001992,"mob_target":430856,"pad_target":120239,"aiot_target":450896,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":11513,"aiot_qty":8,"band":0,"watch":0,"headphone":369,"white_goods":0,"tv":2590,"ecosystem":7405,"other":0},
-  "SQTH00083":{"sid":"SQTH00083","name":"Xiaomi Authorized Store Robinson Chachoengsao Chachoengsao Thailand","days":[18829,30785],"cumul":49614,"vis":138,"cv":null,"mob":3299,"ach":6.2,"target":801594,"mob_target":344685,"pad_target":96191,"aiot_target":360717,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":22989,"pad_qty":2,"aiot":23326,"aiot_qty":5,"band":2899,"watch":0,"headphone":1598,"white_goods":0,"tv":17990,"ecosystem":839,"other":0},
-  "SQTH00080":{"sid":"SQTH00080","name":"Xiaomi Authorized Store The Mall Lifestore Bangkae BangkokThailand","days":[29886,979],"cumul":30865,"vis":0,"cv":null,"mob":0,"ach":2.5,"target":1226438,"mob_target":527368,"pad_target":147173,"aiot_target":551897,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":0,"pad":26990,"pad_qty":1,"aiot":3875,"aiot_qty":5,"band":0,"watch":0,"headphone":699,"white_goods":0,"tv":0,"ecosystem":1978,"other":0},
-  "MITH00004":{"sid":"MITH00004","name":"Xiaomi Store Central Krabi Krabi Thailand","days":[29556,6868],"cumul":36424,"vis":58,"cv":null,"mob":0,"ach":2.5,"target":1483094,"mob_target":637731,"pad_target":177971,"aiot_target":667392,"highend_target":11,"highend":0,"highend_qty":0,"mob_qty":0,"pad":20489,"pad_qty":2,"aiot":15935,"aiot_qty":8,"band":2899,"watch":6870,"headphone":369,"white_goods":0,"tv":0,"ecosystem":4498,"other":0},
-  "SQTH00070":{"sid":"SQTH00070","name":"Xiaomi Authorized Store Big C Supercenter Mahachai Samut Sakhon Thailand","days":[4229,1490],"cumul":5719,"vis":0,"cv":null,"mob":0,"ach":1.0,"target":601195,"mob_target":258514,"pad_target":72143,"aiot_target":270538,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":5719,"aiot_qty":3,"band":0,"watch":1490,"headphone":0,"white_goods":0,"tv":2590,"ecosystem":1639,"other":0},
-  "SQTH00076":{"sid":"SQTH00076","name":"Xiaomi Authorized Store  Big C Supercenter Chiang Rai 2 Chiang Rai Thailand","days":[3039,6205],"cumul":9244,"vis":121,"cv":null,"mob":0,"ach":1.3,"target":721287,"mob_target":310153,"pad_target":86554,"aiot_target":324579,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":9244,"aiot_qty":7,"band":2899,"watch":2290,"headphone":1868,"white_goods":0,"tv":0,"ecosystem":2187,"other":0},
-  "SQTH00042":{"sid":"SQTH00042","name":"Xiaomi Authorized Store Central Nakhonsawan Nakhonsawan Thailand","days":[51722,9077],"cumul":60799,"vis":113,"cv":null,"mob":13990,"ach":6.4,"target":944154,"mob_target":405986,"pad_target":113298,"aiot_target":424869,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":20539,"pad_qty":1,"aiot":26270,"aiot_qty":12,"band":4098,"watch":0,"headphone":799,"white_goods":2598,"tv":5180,"ecosystem":11596,"other":0},
-  "SQTH00050":{"sid":"SQTH00050","name":"Xiaomi Authorized Store Central Nakhonpathom Nakhonpathom Thailand","days":[34802,42324],"cumul":77126,"vis":182,"cv":null,"mob":26488,"ach":4.6,"target":1679314,"mob_target":722105,"pad_target":201518,"aiot_target":755691,"highend_target":12,"highend":14990,"highend_qty":1,"mob_qty":3,"pad":32889,"pad_qty":2,"aiot":17749,"aiot_qty":11,"band":0,"watch":3499,"headphone":699,"white_goods":0,"tv":3398,"ecosystem":10153,"other":0},
-  "SQTH00029":{"sid":"SQTH00029","name":"Xiaomi Authorized Store Lotus Ruamchok Chiangmai Thailand","days":[3299,2850],"cumul":6149,"vis":118,"cv":null,"mob":3299,"ach":1.0,"target":597703,"mob_target":257012,"pad_target":71724,"aiot_target":268966,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":2850,"aiot_qty":2,"band":0,"watch":1490,"headphone":0,"white_goods":0,"tv":0,"ecosystem":1360,"other":0},
-  "SQTH00090":{"sid":"SQTH00090","name":"Xiaomi Authorized Store Passione Shopping Destination Rayong Thailand","days":[17958,5897],"cumul":23855,"vis":90,"cv":null,"mob":13990,"ach":3.1,"target":771534,"mob_target":331760,"pad_target":92584,"aiot_target":347190,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":9865,"aiot_qty":5,"band":0,"watch":9396,"headphone":0,"white_goods":0,"tv":0,"ecosystem":469,"other":0},
-  "SQTH00031":{"sid":"SQTH00031","name":"Xiaomi Authorized Store Fashion Island 2 Bangkok Thailand","days":[96621,28485],"cumul":125106,"vis":1226,"cv":null,"mob":81486,"ach":3.6,"target":3491106,"mob_target":1501175,"pad_target":418933,"aiot_target":1570998,"highend_target":20,"highend":52998,"highend_qty":2,"mob_qty":5,"pad":0,"pad_qty":0,"aiot":43620,"aiot_qty":32,"band":0,"watch":3597,"headphone":1157,"white_goods":9487,"tv":0,"ecosystem":21084,"other":0},
-  "SQTH00055":{"sid":"SQTH00055","name":"Xiaomi Authorized Store Lotus Banpong Ratchaburi Thailand","days":[839,1390],"cumul":2229,"vis":53,"cv":null,"mob":0,"ach":0.3,"target":658912,"mob_target":283332,"pad_target":79069,"aiot_target":296510,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":2229,"aiot_qty":2,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":1390,"ecosystem":839,"other":0},
-  "SQTH00013":{"sid":"SQTH00013","name":"Xiaomi Authorized Store Central Festival Chiangmai Thailand","days":[18566,86863],"cumul":105429,"vis":367,"cv":null,"mob":4999,"ach":3.2,"target":3279259,"mob_target":1410081,"pad_target":393511,"aiot_target":1475667,"highend_target":13,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":100430,"aiot_qty":70,"band":3398,"watch":11999,"headphone":4162,"white_goods":15395,"tv":1996,"ecosystem":61112,"other":0},
-  "SQTH00081":{"sid":"SQTH00081","name":"Xiaomi Authorized Store Lotus Rama 1 Bangkok Thailand","days":[928,15498],"cumul":16426,"vis":120,"cv":null,"mob":7999,"ach":2.6,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":7499,"pad_qty":1,"aiot":928,"aiot_qty":3,"band":0,"watch":0,"headphone":179,"white_goods":0,"tv":0,"ecosystem":749,"other":0},
-  "SQTH00011":{"sid":"SQTH00011","name":"Xiaomi Authorized Store Central Rama3 Bangkok Thailand","days":[42382,0],"cumul":42382,"vis":126,"cv":null,"mob":21997,"ach":2.6,"target":1609536,"mob_target":692101,"pad_target":193144,"aiot_target":724291,"highend_target":14,"highend":0,"highend_qty":0,"mob_qty":3,"pad":0,"pad_qty":0,"aiot":9382,"aiot_qty":9,"band":1699,"watch":0,"headphone":2098,"white_goods":3147,"tv":0,"ecosystem":839,"other":0},
-  "SQTH00004":{"sid":"SQTH00004","name":"Xiaomi Authorized Store Future Park Rangsit 3F Bangkok Thailand","days":[4089,12383],"cumul":16472,"vis":173,"cv":null,"mob":0,"ach":0.9,"target":1747601,"mob_target":751468,"pad_target":209712,"aiot_target":786420,"highend_target":13,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":16472,"aiot_qty":9,"band":1998,"watch":6199,"headphone":799,"white_goods":4339,"tv":0,"ecosystem":1988,"other":0},
-  "SQTH00014":{"sid":"SQTH00014","name":"Xiaomi Authorized Store Seacon Square Srinakarin Bangkok Thailand","days":[13622,0],"cumul":13622,"vis":325,"cv":null,"mob":18499,"ach":0.6,"target":2454967,"mob_target":1055636,"pad_target":294596,"aiot_target":1104735,"highend_target":16,"highend":18499,"highend_qty":1,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":-45037,"aiot_qty":18,"band":0,"watch":7450,"headphone":2566,"white_goods":-80701,"tv":998,"ecosystem":22352,"other":0},
-  "SQTH00067":{"sid":"SQTH00067","name":"Xiaomi Authorized Store Taweekit Supercenter Buriram Thailand","days":[3499,4798],"cumul":8297,"vis":51,"cv":null,"mob":0,"ach":0.9,"target":876743,"mob_target":376999,"pad_target":105209,"aiot_target":394534,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":8297,"aiot_qty":4,"band":0,"watch":3499,"headphone":799,"white_goods":0,"tv":0,"ecosystem":3999,"other":0},
-  "SQTH00060":{"sid":"SQTH00060","name":"Xiaomi Authorized Store Lotus's Phuket Phuket Thailand","days":[1408,11736],"cumul":13144,"vis":179,"cv":null,"mob":0,"ach":2.1,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":13144,"aiot_qty":6,"band":0,"watch":0,"headphone":369,"white_goods":0,"tv":1699,"ecosystem":11076,"other":0}
+var _SEP={"meta":{"month":"Sep","days":["Sep 1","Sep 2","Sep 3","Sep 4","Sep 5","Sep 6"],"de":6,"dm":30},"stores":{
+  "SQTH00071":{"sid":"SQTH00071","name":"Xiaomi Authorized Store Big C Supercenter Kamphaeng Phet  Kamphaeng Phet Thailand","days":[5167,3480,9487,10359,24092,45892],"cumul":98477,"vis":179,"cv":12.29,"mob":40988,"ach":13.1,"target":751494,"mob_target":323142,"pad_target":90179,"aiot_target":338172,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":3,"pad":8999,"pad_qty":1,"aiot":48490,"aiot_qty":26,"band":0,"watch":9687,"headphone":738,"white_goods":0,"tv":1990,"ecosystem":22998,"other":0},
+  "SQTH00087":{"sid":"SQTH00087","name":"Xiaomi Authorized Store Central Northville Nonthaburi Thailand","days":[9990,16197,36205,23616,17999,20119],"cumul":124126,"vis":803,"cv":3.11,"mob":67885,"ach":10.0,"target":1237460,"mob_target":532108,"pad_target":148495,"aiot_target":556857,"highend_target":10,"highend":18499,"highend_qty":1,"mob_qty":6,"pad":14417,"pad_qty":2,"aiot":41824,"aiot_qty":21,"band":5097,"watch":2290,"headphone":10164,"white_goods":0,"tv":2580,"ecosystem":18403,"other":0},
+  "SQTH00062":{"sid":"SQTH00062","name":"Xiaomi Authorized Store Big C Lamphun Thailand","days":[0,2290,699,12359,17724,59417],"cumul":92489,"vis":575,"cv":3.83,"mob":67995,"ach":16.5,"target":560487,"mob_target":241009,"pad_target":67258,"aiot_target":252219,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":5,"pad":0,"pad_qty":0,"aiot":24494,"aiot_qty":28,"band":0,"watch":7279,"headphone":5175,"white_goods":79,"tv":649,"ecosystem":8714,"other":79},
+  "SQTH00095":{"sid":"SQTH00095","name":"Xiaomi Authorized Store Happitat Samut Prakan Thailand","days":[2098,699,37428,1799,5405,26499],"cumul":73928,"vis":500,"cv":2.6,"mob":26499,"ach":6.2,"target":1183152,"mob_target":508755,"pad_target":141978,"aiot_target":532418,"highend_target":10,"highend":26499,"highend_qty":1,"mob_qty":1,"pad":3848,"pad_qty":1,"aiot":43581,"aiot_qty":12,"band":899,"watch":1199,"headphone":0,"white_goods":0,"tv":24789,"ecosystem":5905,"other":0},
+  "SQTH00049":{"sid":"SQTH00049","name":"Xiaomi Authorized Store Central Plaza Salaya Nakhonpathom Thailand","days":[36289,27635,19431,28005,80567,41562],"cumul":233489,"vis":561,"cv":6.77,"mob":89975,"ach":14.5,"target":1609065,"mob_target":691898,"pad_target":193088,"aiot_target":724079,"highend_target":12,"highend":18499,"highend_qty":1,"mob_qty":7,"pad":12698,"pad_qty":2,"aiot":130816,"aiot_qty":74,"band":2697,"watch":15275,"headphone":2198,"white_goods":0,"tv":8786,"ecosystem":63933,"other":0},
+  "SQTH00063":{"sid":"SQTH00063","name":"Xiaomi Authorized Store Terminal 21 Pattaya Chonburi Thailand","days":[24983,112587,13581,8493,90755,27143],"cumul":277542,"vis":1223,"cv":3.6,"mob":113457,"ach":30.1,"target":921796,"mob_target":396372,"pad_target":110616,"aiot_target":414808,"highend_target":7,"highend":69469,"highend_qty":4,"mob_qty":7,"pad":27889,"pad_qty":2,"aiot":136196,"aiot_qty":96,"band":6297,"watch":10768,"headphone":19265,"white_goods":129,"tv":20168,"ecosystem":67806,"other":129},
+  "SQTH00074":{"sid":"SQTH00074","name":"Xiaomi Authorized Store Robinson Kanchanaburi Kanchanaburi Thailand","days":[8467,2938,25612,10776,116944,26655],"cumul":191392,"vis":392,"cv":7.65,"mob":101985,"ach":22.7,"target":841673,"mob_target":361919,"pad_target":101001,"aiot_target":378753,"highend_target":7,"highend":47998,"highend_qty":2,"mob_qty":6,"pad":40588,"pad_qty":3,"aiot":48819,"aiot_qty":32,"band":0,"watch":13478,"headphone":5535,"white_goods":0,"tv":5189,"ecosystem":15410,"other":0},
+  "SQTH00085":{"sid":"SQTH00085","name":"Xiaomi Authorized Store Big C supercenter Nakhon Ratchasima 2 Nakhonratchasima Thailand","days":[15297,1959,26499,9467,47585,20214],"cumul":121021,"vis":409,"cv":4.4,"mob":88793,"ach":19.2,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":26499,"highend_qty":1,"mob_qty":7,"pad":0,"pad_qty":0,"aiot":32228,"aiot_qty":21,"band":0,"watch":1490,"headphone":2199,"white_goods":0,"tv":1799,"ecosystem":18114,"other":0},
+  "SQTH00017":{"sid":"SQTH00017","name":"Xiaomi Authorized Store IT Mall Fortune Town Bangkok Thailand","days":[18811,21922,41885,17320,66369,22864],"cumul":189171,"vis":716,"cv":6.01,"mob":86994,"ach":9.4,"target":2010757,"mob_target":864625,"pad_target":241291,"aiot_target":904840,"highend_target":14,"highend":47998,"highend_qty":2,"mob_qty":6,"pad":22989,"pad_qty":2,"aiot":79188,"aiot_qty":50,"band":1699,"watch":11458,"headphone":5914,"white_goods":0,"tv":3199,"ecosystem":28801,"other":0},
+  "SQTH00051":{"sid":"SQTH00051","name":"Xiaomi Authorized Store Central Suratthani Thailand","days":[51388,33103,1799,67980,90112,129476],"cumul":373858,"vis":726,"cv":8.13,"mob":196879,"ach":20.3,"target":1838043,"mob_target":790358,"pad_target":220565,"aiot_target":827119,"highend_target":13,"highend":101487,"highend_qty":4,"mob_qty":12,"pad":21990,"pad_qty":1,"aiot":154989,"aiot_qty":60,"band":11693,"watch":25484,"headphone":6405,"white_goods":0,"tv":3848,"ecosystem":67317,"other":0},
+  "SQTH00091":{"sid":"SQTH00091","name":"Xiaomi Authorized Store Big C Lopburi 1 Thailand","days":[49797,32827,6888,9916,77849,31884],"cumul":209161,"vis":0,"cv":null,"mob":69497,"ach":22.1,"target":945880,"mob_target":406729,"pad_target":113506,"aiot_target":425646,"highend_target":10,"highend":69497,"highend_qty":3,"mob_qty":3,"pad":86767,"pad_qty":6,"aiot":52897,"aiot_qty":27,"band":0,"watch":12895,"headphone":1678,"white_goods":0,"tv":2390,"ecosystem":35934,"other":0},
+  "SQTH00032":{"sid":"SQTH00032","name":"Xiaomi Authorized Store Central Festival Eastville Bangkok Thailand","days":[83044,41207,44244,10726,42310,81390],"cumul":302921,"vis":847,"cv":10.51,"mob":98494,"ach":15.7,"target":1930990,"mob_target":830326,"pad_target":231719,"aiot_target":868945,"highend_target":13,"highend":24499,"highend_qty":1,"mob_qty":6,"pad":0,"pad_qty":0,"aiot":204427,"aiot_qty":101,"band":5097,"watch":27093,"headphone":4714,"white_goods":0,"tv":12488,"ecosystem":88805,"other":0},
+  "SQTH00046":{"sid":"SQTH00046","name":"Xiaomi Authorized Store The Mall Nakhonratchasima Nakhonratchasima Thailand","days":[3665,1968,2798,6620,22277,59770],"cumul":97098,"vis":596,"cv":5.37,"mob":58496,"ach":8.4,"target":1150444,"mob_target":494691,"pad_target":138053,"aiot_target":517700,"highend_target":12,"highend":24499,"highend_qty":1,"mob_qty":4,"pad":0,"pad_qty":0,"aiot":38602,"aiot_qty":34,"band":3398,"watch":4688,"headphone":1397,"white_goods":0,"tv":6570,"ecosystem":21150,"other":0},
+  "SQTH00068":{"sid":"SQTH00068","name":"Xiaomi Authorized Store Lotus's Banbueng Chonburi Thailand","days":[17897,24499,2398,0,54593,34175],"cumul":133562,"vis":313,"cv":5.43,"mob":122491,"ach":15.7,"target":851693,"mob_target":366228,"pad_target":102203,"aiot_target":383262,"highend_target":7,"highend":24499,"highend_qty":1,"mob_qty":9,"pad":0,"pad_qty":0,"aiot":11071,"aiot_qty":18,"band":0,"watch":3499,"headphone":878,"white_goods":0,"tv":1699,"ecosystem":4995,"other":0},
+  "SQTH00007":{"sid":"SQTH00007","name":"Xiaomi Authorized Store The Mall Lifestore Bangkapi Bangkok Thailand","days":[39821,3479,4415,22463,133264,31016],"cumul":234458,"vis":917,"cv":4.8,"mob":113974,"ach":16.8,"target":1392178,"mob_target":598637,"pad_target":167061,"aiot_target":626480,"highend_target":14,"highend":36998,"highend_qty":2,"mob_qty":8,"pad":19990,"pad_qty":1,"aiot":100494,"aiot_qty":50,"band":5597,"watch":17647,"headphone":1677,"white_goods":0,"tv":3689,"ecosystem":52149,"other":0},
+  "SQTH00072":{"sid":"SQTH00072","name":"Xiaomi Authorized Store Robinson SakonnakhonThailand","days":[35388,30895,10697,20358,20979,9185],"cumul":127502,"vis":322,"cv":6.83,"mob":80394,"ach":14.5,"target":881753,"mob_target":379154,"pad_target":105810,"aiot_target":396789,"highend_target":7,"highend":36998,"highend_qty":2,"mob_qty":6,"pad":13990,"pad_qty":1,"aiot":33118,"aiot_qty":20,"band":2899,"watch":22167,"headphone":2666,"white_goods":0,"tv":3848,"ecosystem":1538,"other":0},
+  "SQTH00057":{"sid":"SQTH00057","name":"Xiaomi Authorized Store Central Plaza Airport Chiangmai Chiangmai Thailand","days":[22315,47734,19032,49589,133858,45090],"cumul":317618,"vis":657,"cv":8.07,"mob":238970,"ach":26.7,"target":1191181,"mob_target":512208,"pad_target":142942,"aiot_target":536031,"highend_target":10,"highend":115978,"highend_qty":4,"mob_qty":12,"pad":26138,"pad_qty":2,"aiot":52510,"aiot_qty":70,"band":0,"watch":4580,"headphone":8108,"white_goods":0,"tv":10971,"ecosystem":18382,"other":0},
+  "SQTH00037":{"sid":"SQTH00037","name":"Xiaomi Authorized Store Central Plaza Rama 2 Bangkok Thailand","days":[60725,64062,34393,64383,434515,343264],"cumul":1001342,"vis":978,"cv":12.27,"mob":252959,"ach":47.2,"target":2123653,"mob_target":913171,"pad_target":254838,"aiot_target":955644,"highend_target":16,"highend":160984,"highend_qty":7,"mob_qty":14,"pad":60268,"pad_qty":5,"aiot":688115,"aiot_qty":310,"band":13493,"watch":81983,"headphone":90382,"white_goods":0,"tv":107627,"ecosystem":308747,"other":0},
+  "MITH78952":{"sid":"MITH78952","name":"Xiaomi Store The Mall Lifestore Ngamwongwan Nonthaburi Thailand","days":[10465,64949,6366,16188,124703,8754],"cumul":231425,"vis":1110,"cv":3.87,"mob":121292,"ach":8.6,"target":2687582,"mob_target":1155660,"pad_target":322510,"aiot_target":1209412,"highend_target":19,"highend":62497,"highend_qty":3,"mob_qty":8,"pad":40279,"pad_qty":3,"aiot":69854,"aiot_qty":48,"band":3398,"watch":27675,"headphone":5102,"white_goods":0,"tv":7527,"ecosystem":18329,"other":0},
+  "SQTH00025":{"sid":"SQTH00025","name":"Xiaomi Authorized Store MAYA Lifestyle Shopping Center Chiangmai Thailand","days":[5746,9233,12176,43234,123278,76349],"cumul":270016,"vis":830,"cv":7.11,"mob":136992,"ach":20.9,"target":1295021,"mob_target":556859,"pad_target":155402,"aiot_target":582759,"highend_target":11,"highend":45998,"highend_qty":2,"mob_qty":8,"pad":27980,"pad_qty":2,"aiot":105044,"aiot_qty":76,"band":5688,"watch":19829,"headphone":7129,"white_goods":0,"tv":7924,"ecosystem":38115,"other":0},
+  "SQTH00096":{"sid":"SQTH00096","name":"Xiaomi Authorized Store Central Lampang Thailand","days":[26789,37294,0,18936,64728,60953],"cumul":208700,"vis":419,"cv":7.88,"mob":167481,"ach":20.6,"target":1014016,"mob_target":436027,"pad_target":121682,"aiot_target":456307,"highend_target":7,"highend":69497,"highend_qty":3,"mob_qty":10,"pad":7499,"pad_qty":1,"aiot":33720,"aiot_qty":42,"band":2899,"watch":2290,"headphone":3333,"white_goods":0,"tv":4843,"ecosystem":8221,"other":0},
+  "MITH78951":{"sid":"MITH78951","name":"Xiaomi Store Siam Paragon Bangkok Thailand","days":[910775,89776,610585,107870,80697,82500],"cumul":1882203,"vis":1892,"cv":6.71,"mob":1525978,"ach":54.8,"target":3435910,"mob_target":1477441,"pad_target":412309,"aiot_target":1546159,"highend_target":20,"highend":134978,"highend_qty":4,"mob_qty":304,"pad":99608,"pad_qty":5,"aiot":256617,"aiot_qty":157,"band":5396,"watch":0,"headphone":18687,"white_goods":847,"tv":47065,"ecosystem":90587,"other":847},
+  "SQTH00086":{"sid":"SQTH00086","name":"Xiaomi Authorized Store Terminal 21 Korat Korat Thailand","days":[5168,3897,358,1947,36793,7587],"cumul":55750,"vis":196,"cv":9.18,"mob":17999,"ach":7.2,"target":771534,"mob_target":331760,"pad_target":92584,"aiot_target":347190,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":37751,"aiot_qty":23,"band":1699,"watch":11177,"headphone":1236,"white_goods":0,"tv":0,"ecosystem":20041,"other":0},
+  "SQTH00003":{"sid":"SQTH00003","name":"Xiaomi Authorized Store Future Park Rangsit 2F Bangkok Thailand","days":[27885,48040,68002,57932,92783,75125],"cumul":369767,"vis":856,"cv":9.11,"mob":132993,"ach":21.3,"target":1733337,"mob_target":745335,"pad_target":208000,"aiot_target":780001,"highend_target":13,"highend":52998,"highend_qty":2,"mob_qty":7,"pad":0,"pad_qty":0,"aiot":236774,"aiot_qty":99,"band":14693,"watch":46012,"headphone":2766,"white_goods":0,"tv":9437,"ecosystem":53110,"other":0},
+  "SQTH00044":{"sid":"SQTH00044","name":"Xiaomi Authorized Store Robinson Lifestyle Thalang Phuket Thailand","days":[61285,50072,34777,31858,92363,52926],"cumul":323281,"vis":461,"cv":3.47,"mob":172263,"ach":23.1,"target":1397747,"mob_target":601031,"pad_target":167730,"aiot_target":628986,"highend_target":12,"highend":104970,"highend_qty":3,"mob_qty":10,"pad":13990,"pad_qty":1,"aiot":137028,"aiot_qty":83,"band":7497,"watch":20796,"headphone":2846,"white_goods":0,"tv":8960,"ecosystem":82169,"other":0},
+  "SQTH00078":{"sid":"SQTH00078","name":"Xiaomi Authorized Store Robinson Sriracha Chonburi Thailand","days":[20998,0,10980,0,30781,57441],"cumul":120200,"vis":263,"cv":6.08,"mob":80986,"ach":12.0,"target":1001992,"mob_target":430856,"pad_target":120239,"aiot_target":450896,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":5,"pad":8999,"pad_qty":1,"aiot":30215,"aiot_qty":25,"band":0,"watch":3780,"headphone":179,"white_goods":0,"tv":0,"ecosystem":14928,"other":0},
+  "SQTH00093":{"sid":"SQTH00093","name":"Xiaomi Authorized Store Central Ubonratchathani Ubonratchathani Thailand","days":[24793,23045,48484,25358,38564,78609],"cumul":238853,"vis":476,"cv":9.03,"mob":122983,"ach":21.7,"target":1102191,"mob_target":473942,"pad_target":132263,"aiot_target":495986,"highend_target":10,"highend":42998,"highend_qty":2,"mob_qty":8,"pad":39980,"pad_qty":2,"aiot":75890,"aiot_qty":47,"band":12393,"watch":24947,"headphone":3292,"white_goods":0,"tv":8988,"ecosystem":9392,"other":0},
+  "SQTH00089":{"sid":"SQTH00089","name":"Xiaomi Authorized Store Lotus Srinakarin Samut Prakan Thailand","days":[799,3688,10875,8597,28527,24424],"cumul":76910,"vis":252,"cv":6.75,"mob":27998,"ach":12.2,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":2,"pad":25889,"pad_qty":2,"aiot":23023,"aiot_qty":23,"band":0,"watch":3780,"headphone":1598,"white_goods":0,"tv":1699,"ecosystem":12349,"other":0},
+  "SQTH00033":{"sid":"SQTH00033","name":"Xiaomi Authorized Store Central Festival Hatyai Songkhla Thailand","days":[21378,11596,69042,62806,100602,48891],"cumul":314315,"vis":808,"cv":8.66,"mob":90185,"ach":18.7,"target":1684616,"mob_target":724385,"pad_target":202154,"aiot_target":758077,"highend_target":12,"highend":24499,"highend_qty":1,"mob_qty":6,"pad":77057,"pad_qty":5,"aiot":147073,"aiot_qty":67,"band":14293,"watch":21295,"headphone":10065,"white_goods":0,"tv":649,"ecosystem":63780,"other":0},
+  "SQTH00009":{"sid":"SQTH00009","name":"Xiaomi Authorized Store Big C Extra Ratchadaphisek Bangkok Thailand","days":[27686,23490,3419,17226,24261,31535],"cumul":127617,"vis":377,"cv":10.34,"mob":60986,"ach":16.6,"target":766889,"mob_target":329762,"pad_target":92027,"aiot_target":345100,"highend_target":8,"highend":0,"highend_qty":0,"mob_qty":5,"pad":13990,"pad_qty":1,"aiot":52641,"aiot_qty":46,"band":6797,"watch":4470,"headphone":6803,"white_goods":0,"tv":6398,"ecosystem":20977,"other":0},
+  "SQTH00038":{"sid":"SQTH00038","name":"Xiaomi Authorized Store Central World Bangkok Thailand","days":[35881,98258,103316,88928,147454,86181],"cumul":560018,"vis":2387,"cv":5.78,"mob":205959,"ach":13.5,"target":4135769,"mob_target":1778381,"pad_target":496292,"aiot_target":1861096,"highend_target":23,"highend":89988,"highend_qty":3,"mob_qty":14,"pad":68269,"pad_qty":4,"aiot":285790,"aiot_qty":174,"band":18190,"watch":51391,"headphone":23407,"white_goods":0,"tv":6545,"ecosystem":113119,"other":0},
+  "SQTH00027":{"sid":"SQTH00027","name":"Xiaomi Authorized Store Big C Supercenter Hangdong Chiang Mai Thailand","days":[45913,45903,179,4898,48244,41151],"cumul":186288,"vis":300,"cv":11.0,"mob":119484,"ach":22.9,"target":815089,"mob_target":350488,"pad_target":97811,"aiot_target":366790,"highend_target":12,"highend":52998,"highend_qty":2,"mob_qty":7,"pad":28789,"pad_qty":2,"aiot":38015,"aiot_qty":33,"band":2899,"watch":2689,"headphone":2965,"white_goods":0,"tv":4879,"ecosystem":21086,"other":0},
+  "SQTH00065":{"sid":"SQTH00065","name":"Xiaomi Authorized Store Lotus's Krabi KrabiThailand","days":[0,0,4998,4598,18979,13999],"cumul":42574,"vis":280,"cv":2.86,"mob":29998,"ach":7.1,"target":601195,"mob_target":258514,"pad_target":72143,"aiot_target":270538,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":12576,"aiot_qty":10,"band":0,"watch":9978,"headphone":1499,"white_goods":0,"tv":0,"ecosystem":1099,"other":0},
+  "SQTH00006":{"sid":"SQTH00006","name":"Xiaomi Authorized Store Market Village Suvarnabhumi Samutprakan Thailand","days":[115014,0,0,0,0,11999],"cumul":127013,"vis":551,"cv":0.91,"mob":81496,"ach":12.3,"target":1032457,"mob_target":443957,"pad_target":123895,"aiot_target":464606,"highend_target":10,"highend":69497,"highend_qty":3,"mob_qty":4,"pad":7848,"pad_qty":1,"aiot":37669,"aiot_qty":24,"band":6297,"watch":13686,"headphone":3055,"white_goods":0,"tv":2590,"ecosystem":5745,"other":0},
+  "SQTH00079":{"sid":"SQTH00079","name":"Xiaomi Authorized Store Robinson Bowin Chonburi Thailand","days":[48187,23596,4089,37777,79241,137339],"cumul":330229,"vis":395,"cv":8.61,"mob":255487,"ach":36.9,"target":894278,"mob_target":384539,"pad_target":107313,"aiot_target":402425,"highend_target":10,"highend":174493,"highend_qty":7,"mob_qty":13,"pad":28789,"pad_qty":2,"aiot":45953,"aiot_qty":29,"band":2899,"watch":6379,"headphone":1499,"white_goods":0,"tv":3980,"ecosystem":13440,"other":0},
+  "SQTH00018":{"sid":"SQTH00018","name":"Xiaomi Authorized Store Robinson Lifestyle Suphanburi Thailand","days":[37064,1198,38972,9787,71153,54703],"cumul":212877,"vis":371,"cv":8.36,"mob":128484,"ach":18.5,"target":1148975,"mob_target":494059,"pad_target":137877,"aiot_target":517039,"highend_target":12,"highend":56489,"highend_qty":2,"mob_qty":7,"pad":0,"pad_qty":0,"aiot":84393,"aiot_qty":49,"band":0,"watch":23667,"headphone":4997,"white_goods":0,"tv":3199,"ecosystem":32533,"other":0},
+  "SQTH00034":{"sid":"SQTH00034","name":"Xiaomi Authorized Store Central Festival Pattaya Beach Chonburi Thailand","days":[48106,14847,9796,0,0,0],"cumul":72749,"vis":1359,"cv":0.22,"mob":7999,"ach":3.0,"target":2427806,"mob_target":1043957,"pad_target":291337,"aiot_target":1092513,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":64750,"aiot_qty":36,"band":4998,"watch":6596,"headphone":2336,"white_goods":0,"tv":3689,"ecosystem":32175,"other":0},
+  "SQTH00012":{"sid":"SQTH00012","name":"Xiaomi Authorized Store Central Westville Nonthaburi Thailand","days":[17681,18995,3998,65531,5825,59856],"cumul":171886,"vis":426,"cv":9.86,"mob":96986,"ach":14.2,"target":1209003,"mob_target":519871,"pad_target":145080,"aiot_target":544051,"highend_target":8,"highend":44990,"highend_qty":1,"mob_qty":5,"pad":0,"pad_qty":0,"aiot":74900,"aiot_qty":51,"band":4598,"watch":6988,"headphone":7421,"white_goods":0,"tv":14178,"ecosystem":29461,"other":0},
+  "SQTH00040":{"sid":"SQTH00040","name":"Xiaomi Authorized Store Robinson Srisamarn Nontaburi Thailand","days":[16354,0,0,61003,19953,11595],"cumul":108905,"vis":515,"cv":1.36,"mob":18499,"ach":10.3,"target":1061879,"mob_target":456608,"pad_target":127426,"aiot_target":477846,"highend_target":10,"highend":18499,"highend_qty":1,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":90406,"aiot_qty":37,"band":1699,"watch":37791,"headphone":0,"white_goods":0,"tv":3199,"ecosystem":34228,"other":0},
+  "SQTH00069":{"sid":"SQTH00069","name":"Xiaomi Authorized Store Market Village Huahin Prachuapkhirikhan Thailand","days":[15495,2378,3389,42493,68281,29986],"cumul":162022,"vis":491,"cv":5.5,"mob":75995,"ach":17.3,"target":936862,"mob_target":402851,"pad_target":112424,"aiot_target":421588,"highend_target":10,"highend":47998,"highend_qty":2,"mob_qty":5,"pad":29489,"pad_qty":2,"aiot":56538,"aiot_qty":31,"band":0,"watch":22277,"headphone":0,"white_goods":0,"tv":0,"ecosystem":15156,"other":0},
+  "SQTH00036":{"sid":"SQTH00036","name":"Xiaomi Authorized Store Central Plaza Chonburi Chonburi Thailand","days":[3988,6489,34234,14976,60464,15593],"cumul":135744,"vis":668,"cv":4.04,"mob":45496,"ach":9.9,"target":1373332,"mob_target":590533,"pad_target":164800,"aiot_target":617999,"highend_target":8,"highend":0,"highend_qty":0,"mob_qty":4,"pad":43980,"pad_qty":2,"aiot":46268,"aiot_qty":31,"band":7387,"watch":6998,"headphone":2996,"white_goods":0,"tv":1990,"ecosystem":16118,"other":0},
+  "SQTH00053":{"sid":"SQTH00053","name":"Xiaomi Authorized Store Big C Hatyai Songkhla Thailand","days":[6199,1360,14889,13077,4499,64180],"cumul":104204,"vis":249,"cv":8.03,"mob":56496,"ach":20.5,"target":507821,"mob_target":218363,"pad_target":60939,"aiot_target":228520,"highend_target":10,"highend":26499,"highend_qty":1,"mob_qty":4,"pad":4499,"pad_qty":1,"aiot":43209,"aiot_qty":19,"band":0,"watch":11188,"headphone":1157,"white_goods":0,"tv":0,"ecosystem":18384,"other":0},
+  "SQTH00045":{"sid":"SQTH00045","name":"Xiaomi Authorized Store Central Chiangrai Chiangrai Thailand","days":[10457,29372,40648,31377,69696,132202],"cumul":313752,"vis":479,"cv":13.78,"mob":137482,"ach":32.3,"target":971719,"mob_target":417839,"pad_target":116606,"aiot_target":437273,"highend_target":7,"highend":69497,"highend_qty":3,"mob_qty":9,"pad":28489,"pad_qty":3,"aiot":147781,"aiot_qty":81,"band":1699,"watch":23956,"headphone":587,"white_goods":0,"tv":0,"ecosystem":86566,"other":0},
+  "SQTH00092":{"sid":"SQTH00092","name":"Xiaomi Authorized Store V Square Nakhonsawan Nakhonsawan Thailand","days":[0,1799,15596,1699,47193,4789],"cumul":71076,"vis":230,"cv":6.09,"mob":49894,"ach":7.4,"target":955900,"mob_target":411037,"pad_target":114708,"aiot_target":430155,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":6,"pad":0,"pad_qty":0,"aiot":21182,"aiot_qty":14,"band":2399,"watch":12086,"headphone":0,"white_goods":0,"tv":1699,"ecosystem":4998,"other":0},
+  "SQTH00035":{"sid":"SQTH00035","name":"Xiaomi Authorized Store Central Chaengwattana Nonthaburi Thailand","days":[65252,27531,66393,22436,40333,63537],"cumul":285482,"vis":777,"cv":6.95,"mob":94485,"ach":18.0,"target":1582157,"mob_target":680327,"pad_target":189859,"aiot_target":711971,"highend_target":14,"highend":44990,"highend_qty":1,"mob_qty":5,"pad":63118,"pad_qty":4,"aiot":127879,"aiot_qty":52,"band":2899,"watch":18985,"headphone":12994,"white_goods":0,"tv":8428,"ecosystem":41825,"other":0},
+  "SQTH00058":{"sid":"SQTH00058","name":"Xiaomi Authorized Store Ayutthaya City Park Ayutthaya Thailand","days":[10464,43298,8977,23798,60487,88467],"cumul":235491,"vis":0,"cv":null,"mob":130493,"ach":21.5,"target":1096385,"mob_target":471445,"pad_target":131566,"aiot_target":493373,"highend_target":7,"highend":73497,"highend_qty":3,"mob_qty":7,"pad":44224,"pad_qty":2,"aiot":60774,"aiot_qty":24,"band":0,"watch":5397,"headphone":369,"white_goods":0,"tv":6579,"ecosystem":48429,"other":0},
+  "SQTH00075":{"sid":"SQTH00075","name":"Xiaomi Authorized Store Lotus Amata Plus Mall Chonburi Thailand","days":[36216,17622,0,8398,105722,62292],"cumul":230250,"vis":270,"cv":11.85,"mob":175169,"ach":23.0,"target":1001992,"mob_target":430856,"pad_target":120239,"aiot_target":450896,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":13,"pad":0,"pad_qty":0,"aiot":55081,"aiot_qty":37,"band":2698,"watch":7588,"headphone":3336,"white_goods":0,"tv":17990,"ecosystem":13033,"other":0},
+  "SQTH00056":{"sid":"SQTH00056","name":"Xiaomi Authorized Store The Mall Thapra Bangkok Thailand","days":[2048,1369,16189,6998,37696,15568],"cumul":79868,"vis":575,"cv":2.78,"mob":49988,"ach":9.8,"target":819039,"mob_target":352187,"pad_target":98285,"aiot_target":368567,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":3,"pad":0,"pad_qty":0,"aiot":29880,"aiot_qty":17,"band":2698,"watch":4989,"headphone":2199,"white_goods":0,"tv":0,"ecosystem":2697,"other":0},
+  "SQTH00028":{"sid":"SQTH00028","name":"Xiaomi Authorized Store Big C Supercenter Phitsanulok Thailand","days":[0,1499,7139,13948,24773,7989],"cumul":55348,"vis":168,"cv":7.74,"mob":24498,"ach":8.1,"target":681277,"mob_target":292949,"pad_target":81753,"aiot_target":306574,"highend_target":8,"highend":0,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":30850,"aiot_qty":16,"band":1699,"watch":1490,"headphone":179,"white_goods":0,"tv":1148,"ecosystem":7035,"other":0},
+  "SQTH00008":{"sid":"SQTH00008","name":"Xiaomi Authorized Store Fashion Island Bangkok Thailand","days":[48289,13994,98467,14167,85989,11187],"cumul":272093,"vis":1326,"cv":5.58,"mob":111993,"ach":18.3,"target":1483506,"mob_target":637908,"pad_target":178021,"aiot_target":667578,"highend_target":12,"highend":44998,"highend_qty":2,"mob_qty":7,"pad":21990,"pad_qty":1,"aiot":138110,"aiot_qty":104,"band":10186,"watch":50551,"headphone":20229,"white_goods":0,"tv":2639,"ecosystem":29793,"other":0},
+  "SQTH00015":{"sid":"SQTH00015","name":"Xiaomi Authorized Store Seacon Bangkae Bangkok Thailand","days":[21848,90255,9485,12816,17999,88114],"cumul":240517,"vis":1383,"cv":2.31,"mob":103494,"ach":11.9,"target":2026463,"mob_target":871379,"pad_target":243176,"aiot_target":911908,"highend_target":12,"highend":72497,"highend_qty":3,"mob_qty":6,"pad":0,"pad_qty":0,"aiot":137023,"aiot_qty":123,"band":8795,"watch":8250,"headphone":26771,"white_goods":0,"tv":4898,"ecosystem":26039,"other":0},
+  "SQTH00099":{"sid":"SQTH00099","name":"Xiaomi Authorized Store Lotus's Plus Udon Thani Thailand","days":[0,0,0,0,0,0],"cumul":0,"vis":0,"cv":null,"mob":0,"ach":0.0,"target":394384,"mob_target":169585,"pad_target":47326,"aiot_target":177473,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":0,"aiot_qty":0,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
+  "SQTH00030":{"sid":"SQTH00030","name":"Xiaomi Authorized Store Central Westgate Nonthaburi Thailand","days":[140870,21495,67340,44148,82936,87599],"cumul":444388,"vis":1630,"cv":1.17,"mob":109484,"ach":20.2,"target":2203637,"mob_target":947564,"pad_target":264436,"aiot_target":991637,"highend_target":7,"highend":18499,"highend_qty":1,"mob_qty":7,"pad":0,"pad_qty":0,"aiot":334904,"aiot_qty":102,"band":5798,"watch":5270,"headphone":9545,"white_goods":0,"tv":1298,"ecosystem":156716,"other":0},
+  "SQTH00041":{"sid":"SQTH00041","name":"Xiaomi Authorized Store Central Nakhonsithammarat Nakhonsithammarat Thailand","days":[17277,14990,11432,26447,43997,134262],"cumul":248405,"vis":513,"cv":4.29,"mob":122475,"ach":17.4,"target":1425062,"mob_target":612777,"pad_target":171007,"aiot_target":641278,"highend_target":12,"highend":24499,"highend_qty":1,"mob_qty":7,"pad":0,"pad_qty":0,"aiot":125930,"aiot_qty":72,"band":13295,"watch":35690,"headphone":7960,"white_goods":0,"tv":9037,"ecosystem":44891,"other":0},
+  "SQTH00010":{"sid":"SQTH00010","name":"Xiaomi Authorized Store Big C Imperial Samrong Samutprakan Thailand","days":[17636,4988,5797,10794,73482,125362],"cumul":238059,"vis":596,"cv":5.87,"mob":197949,"ach":22.5,"target":1057755,"mob_target":454835,"pad_target":126931,"aiot_target":475990,"highend_target":13,"highend":18499,"highend_qty":1,"mob_qty":15,"pad":12698,"pad_qty":2,"aiot":27412,"aiot_qty":33,"band":1998,"watch":9677,"headphone":2098,"white_goods":0,"tv":0,"ecosystem":11241,"other":0},
+  "SQTH00073":{"sid":"SQTH00073","name":"Xiaomi Authorized Store Central Khonkaen Campus Khonkaen Thailand","days":[12098,8254,16137,31394,72946,5026],"cumul":145855,"vis":0,"cv":null,"mob":108183,"ach":17.1,"target":851693,"mob_target":366228,"pad_target":102203,"aiot_target":383262,"highend_target":7,"highend":71489,"highend_qty":2,"mob_qty":8,"pad":6799,"pad_qty":1,"aiot":30873,"aiot_qty":27,"band":0,"watch":3499,"headphone":10592,"white_goods":0,"tv":2348,"ecosystem":6340,"other":0},
+  "MITH00002":{"sid":"MITH00002","name":"Xiaomi Store Dusit Central Park Bangkok Thailand","days":[134954,31905,30444,34689,78796,55601],"cumul":366389,"vis":1119,"cv":7.6,"mob":157482,"ach":11.6,"target":3159548,"mob_target":1358606,"pad_target":379146,"aiot_target":1421797,"highend_target":12,"highend":79497,"highend_qty":3,"mob_qty":9,"pad":52378,"pad_qty":4,"aiot":156529,"aiot_qty":110,"band":26681,"watch":8489,"headphone":10539,"white_goods":0,"tv":15569,"ecosystem":61253,"other":0},
+  "SQTH00094":{"sid":"SQTH00094","name":"Xiaomi Authorized Store CentralBangna Bangkok Thailand","days":[0,0,0,0,0,0],"cumul":0,"vis":0,"cv":null,"mob":0,"ach":0.0,"target":492980,"mob_target":211981,"pad_target":59158,"aiot_target":221841,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":0,"pad":0,"pad_qty":0,"aiot":0,"aiot_qty":0,"band":0,"watch":0,"headphone":0,"white_goods":0,"tv":0,"ecosystem":0,"other":0},
+  "SQTH00019":{"sid":"SQTH00019","name":"Xiaomi Authorized Store One Bangkok Bangkok Thailand","days":[11033,17536,22333,31147,111225,23774],"cumul":217048,"vis":616,"cv":8.6,"mob":86986,"ach":13.9,"target":1556785,"mob_target":669418,"pad_target":186814,"aiot_target":700553,"highend_target":10,"highend":56489,"highend_qty":2,"mob_qty":5,"pad":33980,"pad_qty":2,"aiot":96082,"aiot_qty":78,"band":6096,"watch":4989,"headphone":11210,"white_goods":0,"tv":17497,"ecosystem":42859,"other":0},
+  "SQTH00059":{"sid":"SQTH00059","name":"Xiaomi Authorized Store Lotus's Chumphon Thailand","days":[0,8097,10665,0,32877,2899],"cumul":54538,"vis":234,"cv":5.98,"mob":23689,"ach":10.6,"target":514732,"mob_target":221335,"pad_target":61768,"aiot_target":231629,"highend_target":10,"highend":16990,"highend_qty":1,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":30849,"aiot_qty":13,"band":9896,"watch":10779,"headphone":1068,"white_goods":0,"tv":6398,"ecosystem":2708,"other":0},
+  "SQTH00098":{"sid":"SQTH00098","name":"Xiaomi Authorized Store Central Korat Korat Thailand","days":[16367,499,18166,6044,25046,26512],"cumul":92634,"vis":331,"cv":6.65,"mob":7999,"ach":10.4,"target":887364,"mob_target":381567,"pad_target":106484,"aiot_target":399314,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":1,"pad":0,"pad_qty":0,"aiot":84635,"aiot_qty":30,"band":2899,"watch":11577,"headphone":738,"white_goods":0,"tv":499,"ecosystem":53443,"other":0},
+  "MITH00003":{"sid":"MITH00003","name":"Xiaomi Store Central Pinklao Bangkok Thailand","days":[33518,103585,19258,95798,110441,146227],"cumul":508827,"vis":1014,"cv":8.48,"mob":281957,"ach":16.8,"target":3024375,"mob_target":1300481,"pad_target":362925,"aiot_target":1360969,"highend_target":18,"highend":159984,"highend_qty":7,"mob_qty":16,"pad":76460,"pad_qty":4,"aiot":150410,"aiot_qty":88,"band":15493,"watch":30146,"headphone":9909,"white_goods":499,"tv":3498,"ecosystem":53710,"other":499},
+  "SQTH00021":{"sid":"SQTH00021","name":"Xiaomi Authorized Store Mega Bangna Samutprakarn Thailand","days":[183535,82600,64180,89105,351471,145796],"cumul":916687,"vis":2106,"cv":11.11,"mob":423750,"ach":20.5,"target":4462432,"mob_target":1918846,"pad_target":535492,"aiot_target":2008094,"highend_target":20,"highend":182984,"highend_qty":7,"mob_qty":23,"pad":56127,"pad_qty":4,"aiot":436810,"aiot_qty":238,"band":18289,"watch":46322,"headphone":22322,"white_goods":0,"tv":11771,"ecosystem":152804,"other":0},
+  "SQTH00052":{"sid":"SQTH00052","name":"Xiaomi Authorized Store Big C Rama 2 Bangkok Thailand","days":[17445,26499,6699,10198,50219,75627],"cumul":186687,"vis":277,"cv":9.75,"mob":145078,"ach":25.3,"target":737110,"mob_target":316957,"pad_target":88453,"aiot_target":331700,"highend_target":10,"highend":44998,"highend_qty":2,"mob_qty":13,"pad":7499,"pad_qty":1,"aiot":34110,"aiot_qty":31,"band":0,"watch":10778,"headphone":5645,"white_goods":0,"tv":3199,"ecosystem":8762,"other":0},
+  "SQTH00005":{"sid":"SQTH00005","name":"Xiaomi Authorized Store Zeer Rangsit Pathumthani Thailand","days":[8954,15634,12990,4935,2977,29995],"cumul":75485,"vis":414,"cv":4.83,"mob":46987,"ach":6.9,"target":1097842,"mob_target":472072,"pad_target":131741,"aiot_target":494029,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":4,"pad":0,"pad_qty":0,"aiot":28498,"aiot_qty":25,"band":4397,"watch":8197,"headphone":2098,"white_goods":0,"tv":0,"ecosystem":12188,"other":0},
+  "SQTH00064":{"sid":"SQTH00064","name":"Xiaomi Authorized Store Terminal 21 Asoke Bangkok Thailand","days":[49314,22145,23654,20931,26501,8595],"cumul":151140,"vis":381,"cv":8.4,"mob":60996,"ach":18.6,"target":812920,"mob_target":349556,"pad_target":97550,"aiot_target":365814,"highend_target":13,"highend":26499,"highend_qty":1,"mob_qty":4,"pad":13490,"pad_qty":1,"aiot":76654,"aiot_qty":47,"band":9196,"watch":9198,"headphone":7801,"white_goods":468,"tv":19110,"ecosystem":15919,"other":468},
+  "SQTH00054":{"sid":"SQTH00054","name":"Xiaomi Authorized Store Big C Phuket Phuket Thailand","days":[104693,28519,7285,61042,17217,37989],"cumul":256745,"vis":516,"cv":12.4,"mob":72494,"ach":32.9,"target":780809,"mob_target":335748,"pad_target":93697,"aiot_target":351364,"highend_target":10,"highend":24499,"highend_qty":1,"mob_qty":5,"pad":13490,"pad_qty":1,"aiot":170761,"aiot_qty":83,"band":4598,"watch":0,"headphone":3097,"white_goods":0,"tv":42655,"ecosystem":81924,"other":0},
+  "SQTH00061":{"sid":"SQTH00061","name":"Xiaomi Authorized Store Lotus's Pranburi Prachuapkhirikhan Thailand","days":[5589,6199,15787,3548,17388,37141],"cumul":85652,"vis":215,"cv":9.77,"mob":27998,"ach":15.4,"target":555732,"mob_target":238965,"pad_target":66688,"aiot_target":250079,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":57654,"aiot_qty":23,"band":2899,"watch":9688,"headphone":1498,"white_goods":0,"tv":5589,"ecosystem":27493,"other":0},
+  "SQTH00020":{"sid":"SQTH00020","name":"Xiaomi Authorized Store Robinson Lifestyle Latkrabang Bangkok Thailand","days":[29737,58631,13825,7544,76591,3290],"cumul":189618,"vis":309,"cv":20.06,"mob":92492,"ach":19.8,"target":955636,"mob_target":410923,"pad_target":114676,"aiot_target":430036,"highend_target":8,"highend":0,"highend_qty":0,"mob_qty":8,"pad":8999,"pad_qty":1,"aiot":88127,"aiot_qty":66,"band":5097,"watch":17983,"headphone":6474,"white_goods":0,"tv":2590,"ecosystem":38674,"other":0},
+  "SQTH00088":{"sid":"SQTH00088","name":"Xiaomi Authorized Store Central Rayong Rayong Thailand","days":[13940,32269,37059,16871,111144,12891],"cumul":224174,"vis":0,"cv":null,"mob":120475,"ach":18.5,"target":1212410,"mob_target":521336,"pad_target":145489,"aiot_target":545585,"highend_target":7,"highend":24499,"highend_qty":1,"mob_qty":7,"pad":0,"pad_qty":0,"aiot":103699,"aiot_qty":65,"band":11693,"watch":15477,"headphone":5634,"white_goods":0,"tv":8838,"ecosystem":40431,"other":0},
+  "SQTH00082":{"sid":"SQTH00082","name":"Xiaomi Authorized Store Lotus Rama 4 Bangkok Thailand","days":[31288,0,18672,5377,38915,2147],"cumul":96399,"vis":462,"cv":4.76,"mob":66095,"ach":15.3,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":23499,"highend_qty":1,"mob_qty":5,"pad":0,"pad_qty":0,"aiot":30304,"aiot_qty":27,"band":1998,"watch":5579,"headphone":358,"white_goods":0,"tv":3919,"ecosystem":13754,"other":0},
+  "SQTH00066":{"sid":"SQTH00066","name":"Xiaomi Authorized Store Central Bangrak Bangkok Thailand","days":[11457,15254,4496,6386,1039,7734],"cumul":46366,"vis":601,"cv":3.49,"mob":15198,"ach":4.6,"target":1001992,"mob_target":430856,"pad_target":120239,"aiot_target":450896,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":2,"pad":0,"pad_qty":0,"aiot":31168,"aiot_qty":25,"band":999,"watch":1490,"headphone":4866,"white_goods":0,"tv":3980,"ecosystem":15886,"other":0},
+  "SQTH00083":{"sid":"SQTH00083","name":"Xiaomi Authorized Store Robinson Chachoengsao Chachoengsao Thailand","days":[18829,30785,9034,7114,31646,42103],"cumul":139511,"vis":556,"cv":5.94,"mob":22597,"ach":17.4,"target":801594,"mob_target":344685,"pad_target":96191,"aiot_target":360717,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":3,"pad":36898,"pad_qty":3,"aiot":80016,"aiot_qty":32,"band":2899,"watch":11358,"headphone":3454,"white_goods":0,"tv":37980,"ecosystem":22726,"other":0},
+  "SQTH00080":{"sid":"SQTH00080","name":"Xiaomi Authorized Store The Mall Lifestore Bangkae BangkokThailand","days":[29886,979,999,109857,47218,43824],"cumul":232763,"vis":0,"cv":null,"mob":40497,"ach":19.0,"target":1226438,"mob_target":527368,"pad_target":147173,"aiot_target":551897,"highend_target":7,"highend":0,"highend_qty":0,"mob_qty":3,"pad":85109,"pad_qty":4,"aiot":107157,"aiot_qty":63,"band":6496,"watch":10769,"headphone":6011,"white_goods":0,"tv":12178,"ecosystem":21279,"other":0},
+  "MITH00004":{"sid":"MITH00004","name":"Xiaomi Store Central Krabi Krabi Thailand","days":[29556,6868,5205,2629,103094,18499],"cumul":165851,"vis":246,"cv":8.94,"mob":103987,"ach":11.2,"target":1483094,"mob_target":637731,"pad_target":177971,"aiot_target":667392,"highend_target":11,"highend":85988,"highend_qty":3,"mob_qty":4,"pad":20489,"pad_qty":2,"aiot":41375,"aiot_qty":24,"band":2899,"watch":22649,"headphone":868,"white_goods":0,"tv":0,"ecosystem":13061,"other":0},
+  "SQTH00070":{"sid":"SQTH00070","name":"Xiaomi Authorized Store Big C Supercenter Mahachai Samut Sakhon Thailand","days":[4229,1490,999,0,2348,70864],"cumul":79930,"vis":0,"cv":null,"mob":52497,"ach":13.3,"target":601195,"mob_target":258514,"pad_target":72143,"aiot_target":270538,"highend_target":10,"highend":24499,"highend_qty":1,"mob_qty":3,"pad":17998,"pad_qty":2,"aiot":9435,"aiot_qty":12,"band":999,"watch":2689,"headphone":369,"white_goods":0,"tv":2590,"ecosystem":1639,"other":0},
+  "SQTH00076":{"sid":"SQTH00076","name":"Xiaomi Authorized Store  Big C Supercenter Chiang Rai 2 Chiang Rai Thailand","days":[3039,6205,21189,13047,33171,39261],"cumul":115912,"vis":516,"cv":4.65,"mob":60195,"ach":16.1,"target":721287,"mob_target":310153,"pad_target":86554,"aiot_target":324579,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":5,"pad":26789,"pad_qty":2,"aiot":28928,"aiot_qty":29,"band":2899,"watch":6988,"headphone":3715,"white_goods":0,"tv":998,"ecosystem":7234,"other":0},
+  "SQTH00042":{"sid":"SQTH00042","name":"Xiaomi Authorized Store Central Nakhonsawan Nakhonsawan Thailand","days":[51722,9077,11897,37832,37734,42859],"cumul":191121,"vis":467,"cv":8.99,"mob":71986,"ach":20.2,"target":944154,"mob_target":405986,"pad_target":113298,"aiot_target":424869,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":5,"pad":51528,"pad_qty":3,"aiot":67607,"aiot_qty":44,"band":14494,"watch":14278,"headphone":1598,"white_goods":0,"tv":6478,"ecosystem":24794,"other":0},
+  "SQTH00050":{"sid":"SQTH00050","name":"Xiaomi Authorized Store Central Nakhonpathom Nakhonpathom Thailand","days":[34802,42324,51517,41362,78956,72056],"cumul":321017,"vis":693,"cv":7.22,"mob":165980,"ach":19.1,"target":1679314,"mob_target":722105,"pad_target":201518,"aiot_target":755691,"highend_target":12,"highend":87487,"highend_qty":4,"mob_qty":11,"pad":46379,"pad_qty":3,"aiot":108658,"aiot_qty":68,"band":5596,"watch":30073,"headphone":8575,"white_goods":0,"tv":8477,"ecosystem":32818,"other":0},
+  "SQTH00029":{"sid":"SQTH00029","name":"Xiaomi Authorized Store Lotus Ruamchok Chiangmai Thailand","days":[3299,2850,3780,2948,11999,25845],"cumul":50721,"vis":433,"cv":3.23,"mob":33297,"ach":8.5,"target":597703,"mob_target":257012,"pad_target":71724,"aiot_target":268966,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":3,"pad":0,"pad_qty":0,"aiot":17424,"aiot_qty":16,"band":0,"watch":10540,"headphone":2378,"white_goods":0,"tv":499,"ecosystem":3108,"other":0},
+  "SQTH00090":{"sid":"SQTH00090","name":"Xiaomi Authorized Store Passione Shopping Destination Rayong Thailand","days":[17958,5897,9243,3685,48374,13483],"cumul":98640,"vis":341,"cv":7.62,"mob":53987,"ach":12.8,"target":771534,"mob_target":331760,"pad_target":92584,"aiot_target":347190,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":4,"pad":5899,"pad_qty":1,"aiot":38754,"aiot_qty":31,"band":0,"watch":19894,"headphone":8212,"white_goods":0,"tv":649,"ecosystem":7531,"other":0},
+  "SQTH00031":{"sid":"SQTH00031","name":"Xiaomi Authorized Store Fashion Island 2 Bangkok Thailand","days":[96621,28485,75294,82482,237304,141646],"cumul":661832,"vis":6158,"cv":2.31,"mob":310351,"ach":19.0,"target":3491106,"mob_target":1501175,"pad_target":418933,"aiot_target":1570998,"highend_target":20,"highend":103996,"highend_qty":4,"mob_qty":22,"pad":107998,"pad_qty":6,"aiot":243483,"aiot_qty":135,"band":1998,"watch":38633,"headphone":5492,"white_goods":0,"tv":25786,"ecosystem":104710,"other":0},
+  "SQTH00055":{"sid":"SQTH00055","name":"Xiaomi Authorized Store Lotus Banpong Ratchaburi Thailand","days":[839,1390,30879,26499,52819,23087],"cumul":135513,"vis":160,"cv":9.38,"mob":120665,"ach":20.6,"target":658912,"mob_target":283332,"pad_target":79069,"aiot_target":296510,"highend_target":10,"highend":43489,"highend_qty":2,"mob_qty":8,"pad":999,"pad_qty":1,"aiot":13849,"aiot_qty":17,"band":1898,"watch":0,"headphone":699,"white_goods":0,"tv":2780,"ecosystem":8472,"other":0},
+  "SQTH00013":{"sid":"SQTH00013","name":"Xiaomi Authorized Store Central Festival Chiangmai Thailand","days":[18566,86863,99531,36021,104205,124636],"cumul":469822,"vis":1548,"cv":7.62,"mob":117492,"ach":14.3,"target":3279259,"mob_target":1410081,"pad_target":393511,"aiot_target":1475667,"highend_target":13,"highend":47998,"highend_qty":2,"mob_qty":8,"pad":60695,"pad_qty":6,"aiot":291635,"aiot_qty":177,"band":16990,"watch":46865,"headphone":22213,"white_goods":0,"tv":6091,"ecosystem":134501,"other":0},
+  "SQTH00081":{"sid":"SQTH00081","name":"Xiaomi Authorized Store Lotus Rama 1 Bangkok Thailand","days":[928,15498,1490,0,24597,15298],"cumul":57811,"vis":374,"cv":2.14,"mob":41095,"ach":9.2,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":0,"highend_qty":0,"mob_qty":5,"pad":14298,"pad_qty":2,"aiot":2418,"aiot_qty":6,"band":0,"watch":1490,"headphone":179,"white_goods":0,"tv":0,"ecosystem":749,"other":0},
+  "SQTH00011":{"sid":"SQTH00011","name":"Xiaomi Authorized Store Central Rama3 Bangkok Thailand","days":[42382,0,77991,7062,103610,97083],"cumul":328128,"vis":646,"cv":9.13,"mob":200969,"ach":20.4,"target":1609536,"mob_target":692101,"pad_target":193144,"aiot_target":724291,"highend_target":14,"highend":44990,"highend_qty":1,"mob_qty":13,"pad":7499,"pad_qty":1,"aiot":119660,"aiot_qty":79,"band":6496,"watch":35575,"headphone":17916,"white_goods":0,"tv":4637,"ecosystem":23760,"other":0},
+  "SQTH00004":{"sid":"SQTH00004","name":"Xiaomi Authorized Store Future Park Rangsit 3F Bangkok Thailand","days":[4089,12383,52885,12533,56852,53849],"cumul":192591,"vis":896,"cv":5.25,"mob":98994,"ach":11.0,"target":1747601,"mob_target":751468,"pad_target":209712,"aiot_target":786420,"highend_target":13,"highend":69497,"highend_qty":3,"mob_qty":6,"pad":29489,"pad_qty":2,"aiot":64108,"aiot_qty":43,"band":6986,"watch":20348,"headphone":5992,"white_goods":0,"tv":0,"ecosystem":15057,"other":0},
+  "SQTH00014":{"sid":"SQTH00014","name":"Xiaomi Authorized Store Seacon Square Srinakarin Bangkok Thailand","days":[13622,0,0,37045,106863,78306],"cumul":235836,"vis":1358,"cv":6.41,"mob":104994,"ach":9.6,"target":2454967,"mob_target":1055636,"pad_target":294596,"aiot_target":1104735,"highend_target":16,"highend":36998,"highend_qty":2,"mob_qty":6,"pad":55378,"pad_qty":3,"aiot":75464,"aiot_qty":89,"band":11194,"watch":27279,"headphone":4433,"white_goods":0,"tv":21665,"ecosystem":52810,"other":0},
+  "SQTH00067":{"sid":"SQTH00067","name":"Xiaomi Authorized Store Taweekit Supercenter Buriram Thailand","days":[3499,4798,30366,18499,7777,7498],"cumul":72437,"vis":282,"cv":4.96,"mob":54995,"ach":8.3,"target":876743,"mob_target":376999,"pad_target":105209,"aiot_target":394534,"highend_target":10,"highend":18499,"highend_qty":1,"mob_qty":5,"pad":6799,"pad_qty":1,"aiot":10643,"aiot_qty":10,"band":0,"watch":3499,"headphone":2146,"white_goods":0,"tv":0,"ecosystem":4998,"other":0},
+  "SQTH00060":{"sid":"SQTH00060","name":"Xiaomi Authorized Store Lotus's Phuket Phuket Thailand","days":[1408,11736,1498,2837,67860,50788],"cumul":136127,"vis":507,"cv":5.92,"mob":66496,"ach":21.6,"target":631255,"mob_target":271440,"pad_target":75751,"aiot_target":284065,"highend_target":10,"highend":18499,"highend_qty":1,"mob_qty":4,"pad":0,"pad_qty":0,"aiot":69631,"aiot_qty":36,"band":0,"watch":0,"headphone":3166,"white_goods":0,"tv":4289,"ecosystem":55950,"other":0}
 }};
 // ─── INIT (after _AUG/_JULY fully defined) ──────────────────────────────
 buildMonthBtns();
@@ -4213,7 +4280,7 @@ function wireClicks(){
 // ─── WoW VIEW ─────────────────────────────────────────────────────────────
 function buildWoW(selIdx){
   const sec=document.getElementById('wowSection');
-  const _WOW_SRC=selMonth==='Aug'?WOW_AUG:selMonth==='Jul'?WOW_JUL:WOW;
+  const _WOW_SRC=selMonth==='Sep'?WOW_SEP:selMonth==='Aug'?WOW_AUG:selMonth==='Jul'?WOW_JUL:WOW;
   if(selIdx===undefined||selIdx===null)selIdx=_WOW_SRC.length-1;
   // ── Filter by active retailer/store selection (same as monthly) ──
   const _W = _WOW_SRC.map(w=>{
