@@ -1461,6 +1461,10 @@ const STRINGS={
     prodContribMoM:'PRODUCT CONTRIBUTION MoM',
     mixTitle:'PRODUCT MIX SHIFT vs',
     cvTrendTitle:'CV% TREND — Conversion Rate by Month',
+    wowComparison:'WoW Comparison',wowDay:'WoW/day',wowBaseline:'Baseline',
+    wowTrend:'Weekly GMV Trend',wowClickHint:'Daily Avg GMV · Pad · AIOT · High-end (per day) — click a card below to highlight',
+    wowPctAvg:'WoW% (avg/day)',wowAvgDay:'avg/day',wowBreakdown:'Store Breakdown — Week over Week',
+    wowCumul:'CUMULATIVE',wowWoW:'Week over Week',
   },
   th:{
     gmvTarget:'เป้า GMV',actGmv:'ยอด GMV จริง',tgtAch:'อัตราสำเร็จ',
@@ -1530,6 +1534,10 @@ const STRINGS={
     prodContribMoM:'สัดส่วนผลิตภัณฑ์ MoM',
     mixTitle:'การเปลี่ยนแปลง Mix สินค้า vs',
     cvTrendTitle:'แนวโน้ม CV% — Conversion Rate รายเดือน',
+    wowComparison:'เปรียบเทียบรายสัปดาห์',wowDay:'WoW/วัน',wowBaseline:'สัปดาห์ฐาน',
+    wowTrend:'แนวโน้ม GMV รายสัปดาห์',wowClickHint:'GMV · Pad · AIOT · High-end เฉลี่ยต่อวัน — คลิกการ์ดเพื่อเน้น',
+    wowPctAvg:'WoW% (เฉลี่ย/วัน)',wowAvgDay:'เฉลี่ย/วัน',wowBreakdown:'รายละเอียดสาขา — เปรียบรายสัปดาห์',
+    wowCumul:'ยอดสะสม',wowWoW:'เปรียบเทียบสัปดาห์',
     coreIssuesHdr:' Core Issues — 3 ปัจจัยฉุดยอดหลัก',
     coreDropLbl:'ลดลง',coreLostLbl:'ยอดที่หาย',coreCatNeg:'หมวดที่ลด MoM',
     coreDragLbl:'ฉุด MoM ช่องทางรวมไป',
@@ -1618,6 +1626,10 @@ const STRINGS={
     prodContribMoM:'產品貢獻率 MoM',
     mixTitle:'产品结构变化 vs',
     cvTrendTitle:'CV% 趋势 — 月度转化率',
+    wowComparison:'周环比对比',wowDay:'周环比/天',wowBaseline:'基准周',
+    wowTrend:'每周GMV趋势',wowClickHint:'GMV·平板·AIOT·高端 日均 — 点击卡片高亮',
+    wowPctAvg:'周环比% (日均)',wowAvgDay:'日均',wowBreakdown:'门店分解 — 周环比',
+    wowCumul:'累计',wowWoW:'周环比',
   }
 }
 function t(k){return(STRINGS[CL]||STRINGS.en)[k]||STRINGS.en[k]||k;}
@@ -2826,8 +2838,8 @@ function renderAll(){
   if(selMainView==='daily'){buildDailyView();if(showWoW){setTimeout(wireClicks,100);return;}}
   if(selMainView==='risk'){buildRiskView();if(showWoW){setTimeout(wireClicks,100);return;}}
   if(showWoW){
-    const mnLabel=selMonth==='Sep'?'Sep. 2026 (W)':selMonth==='Aug'?'Aug. 2026 (W)':selMonth==='Jul'?'Jul. 2026 (W)':'Jun. 2026 (W)';
-    const mnFull=selMonth==='Sep'?'September 2026 — Week over Week':selMonth==='Aug'?'August 2026 — Week over Week':selMonth==='Jul'?'July 2026 — Week over Week':'June 2026 — Week over Week';
+    const mnLabel=selMonth==='Sep'?`Sep. 2026 (W)`:selMonth==='Aug'?`Aug. 2026 (W)`:selMonth==='Jul'?`Jul. 2026 (W)`:`Jun. 2026 (W)`;
+    const mnFull=selMonth==='Sep'?`September 2026 — ${t('wowWoW')}`:selMonth==='Aug'?`August 2026 — ${t('wowWoW')}`:selMonth==='Jul'?`July 2026 — ${t('wowWoW')}`:`June 2026 — ${t('wowWoW')}`;
     document.getElementById('periodBadge').textContent=mnLabel;
     document.getElementById('hdrSub').textContent=mnFull;
     buildWoW();
@@ -4368,7 +4380,7 @@ function buildWoW(selIdx){
   // ── 1. KPI CARDS — compare selected week vs its predecessor ──
   const wPrev=selIdx>0?(_W[selIdx-1]?.totals||{}):{};
   const wCurr=_W[selIdx]?.totals||{};
-  const wPrevL=selIdx>0?((_W[selIdx-1]?.wk||`W${selIdx}`)+' · '+(_W[selIdx-1]?.label||'')):'Baseline';
+  const wPrevL=selIdx>0?((_W[selIdx-1]?.wk||`W${selIdx}`)+' · '+(_W[selIdx-1]?.label||'')):t('wowBaseline');
   const wCurrL=(_W[selIdx]?.wk||`W${selIdx+1}`)+' · '+(_W[selIdx]?.label||'');
   const wFirstL=(_W[0]?.wk||'W1')+' · '+(_W[0]?.label||'');
   const hePct=wCurr.mobile_qty?+((wCurr.highend_qty||0)/wCurr.mobile_qty*100).toFixed(1):(wCurr.gmv?+(wCurr.highend/wCurr.gmv*100).toFixed(1):0);
@@ -4397,7 +4409,7 @@ function buildWoW(selIdx){
       <div class="kv"><div class="kv-l">${c.pvL}</div><div class="kv-v prev">${c.pv}</div></div>
       <div class="kv"><div class="kv-l">${c.cvL}</div><div class="kv-v curr">${c.cv}</div></div>
     </div>
-    <div class="kc-mom"><span class="kc-ml">WoW/day</span><span class="kc-mv ${tc2(c.mv)}">${fp2(c.mv)}</span></div>
+    <div class="kc-mom"><span class="kc-ml">${t('wowDay')}</span><span class="kc-mv ${tc2(c.mv)}">${fp2(c.mv)}</span></div>
   </div>`).join('');
 
   // ── 2. WEEK BOXES ─────────────────────────────────────────────
@@ -4473,7 +4485,7 @@ function buildWoW(selIdx){
   }).join('');
 
   // Cumulative label: day 1 – totalDays
-  const cumlLabel=`${selMonth.toUpperCase()} 2026 · CUMULATIVE (1–${totalDays})`;
+  const cumlLabel=`${selMonth.toUpperCase()} 2026 · ${t('wowCumul')} (1–${totalDays})`;
   const wksLabel=_W.map(w=>w.wk).join(' + ');
 
   // ── 4. WEEKLY CHART (SVG) — same format for all months (weekly avg) ──
@@ -4542,10 +4554,10 @@ function buildWoW(selIdx){
       let y=yS(selV[key]);
       usedY.forEach(uy=>{if(Math.abs(y-uy)<22)y=uy+22;});
       usedY.push(y);
-      g+=`<text x="${rightX}" y="${y-1}" fill="${col}" font-size="9.5" font-weight="700">${fV(selV[key])}/d</text>`;
+      g+=`<text x="${rightX}" y="${y-1}" fill="${col}" font-size="9.5" font-weight="700">${fV(selV[key])}/${t('wowAvgDay').split('/')[0]||'d'}</text>`;
       g+=`<text x="${rightX}" y="${y+11}" fill="${col}" font-size="8" opacity=".75">${label}</text>`;
     });
-    g+=`<text x="${rightX}" y="14" fill="#94a3b8" font-size="8" font-weight="600">${_W[sel]?.wk||''} · ${_W[sel]?.label||''} · avg/day</text>`;
+    g+=`<text x="${rightX}" y="14" fill="#94a3b8" font-size="8" font-weight="600">${_W[sel]?.wk||''} · ${_W[sel]?.label||''} · ${t('wowAvgDay')}</text>`;
     // X-axis labels
     _W.forEach((w,i)=>{
       const cx=xS(i),isSel=(i===sel);
@@ -4554,7 +4566,7 @@ function buildWoW(selIdx){
     });
     // WoW% badges
     const momY=PT+cH+38,momH=20;
-    g+=`<text x="${PL}" y="${momY-3}" fill="#374151" font-size="7.5">WoW% (avg/day)</text>`;
+    g+=`<text x="${PL}" y="${momY-3}" fill="#374151" font-size="7.5">${t('wowPctAvg')}</text>`;
     _W.forEach((w,i)=>{
       if(i===0)return;
       const pct=(vals[i].gmv-vals[i-1].gmv)/vals[i-1].gmv*100;
@@ -4563,17 +4575,17 @@ function buildWoW(selIdx){
       g+=`<rect x="${cx-bW/2}" y="${momY}" width="${bW}" height="${momH}" fill="${bgCol}" rx="3" opacity="${isSel?1:.55}" stroke="${isSel?barCol:'none'}" stroke-width="1.5"/>`;
       g+=`<text x="${cx}" y="${momY+momH/2+4}" fill="${barCol}" font-size="8.5" text-anchor="middle" font-weight="${isSel?700:400}">${isPos?'+':''}${pct.toFixed(1)}%</text>`;
     });
-    g+=`<text x="${PL}" y="14" fill="#4b5563" font-size="7.5">Daily Avg GMV · Pad · AIOT · High-end (per day) — click a card below to highlight</text>`;
+    g+=`<text x="${PL}" y="14" fill="#4b5563" font-size="7.5">${t('wowClickHint')}</text>`;
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${g}</svg>`;
   })();
 
 
   sec.innerHTML=`
-    <div style="font-size:.6rem;color:var(--t4);margin:0 0 4px">${wPrevL} → ${wCurrL} &ensp;·&ensp; WoW Comparison</div>
+    <div style="font-size:.6rem;color:var(--t4);margin:0 0 4px">${wPrevL} → ${wCurrL} &ensp;·&ensp; ${t('wowComparison')}</div>
     <div style="display:flex;gap:8px;margin-bottom:10px;width:100%">${kCards}</div>
 
     <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px">
-      <div style="font-size:.58rem;color:var(--t4);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px"> Weekly GMV Trend</div>
+      <div style="font-size:.58rem;color:var(--t4);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">${t('wowTrend')}</div>
       ${wowSvg}
       <div style="display:flex;gap:8px;margin-top:10px">
         ${_W.map((w,i)=>{
@@ -4611,14 +4623,14 @@ function buildWoW(selIdx){
     </div>
     <div class="hero-subs" style="margin-bottom:10px">${wkBoxes}</div>
 
-    <div style="font-size:.62rem;font-weight:700;color:var(--t4);letter-spacing:.06em;margin:4px 0;text-transform:uppercase">Store Breakdown — Week over Week</div>
+    <div style="font-size:.62rem;font-weight:700;color:var(--t4);letter-spacing:.06em;margin:4px 0;text-transform:uppercase">${t('wowBreakdown')}</div>
     <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border)">
       <table style="width:100%;border-collapse:collapse;font-size:.7rem">
         <thead><tr style="background:var(--card2,var(--card));border-bottom:2px solid var(--border)">
           <th style="padding:5px 4px;text-align:center;color:var(--t5);font-size:.58rem">#</th>
-          <th style="padding:5px 6px;text-align:left;color:var(--t4)">Store</th>
+          <th style="padding:5px 6px;text-align:left;color:var(--t4)">${t('quadStore')}</th>
           ${thCols}
-          <th style="padding:5px 6px;text-align:right;color:var(--t4)">Total</th>
+          <th style="padding:5px 6px;text-align:right;color:var(--t4)">${t('wowCumul')}</th>
         </tr></thead>
         <tbody>${trows}</tbody>
       </table>
