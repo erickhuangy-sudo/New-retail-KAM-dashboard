@@ -4355,19 +4355,21 @@ function buildWoW(selIdx){
     const ca=c/(cd||7), pa=p/(pd||7);
     return +((ca-pa)/pa*100).toFixed(1);
   };
-  const wCurrD=_W[_W.length-1]?.days||7, wPrevD=_W[_W.length-2]?.days||7;
+  const wCurrD=_W[selIdx]?.days||7, wPrevD=_W[selIdx>0?selIdx-1:0]?.days||7;
   const fp2=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
   const tc2=v=>v==null?'n':v>=0?'g':'r';
   const totalGMV=_W.reduce((a,w)=>a+w.totals.gmv,0);
   const totalVis=_W.reduce((a,w)=>a+w.totals.visitors,0);
   const totalDays=_W.reduce((a,w)=>a+(w.days||7),0);
   const nWks=_W.length;
+  // clamp selIdx to valid range
+  if(selIdx<0)selIdx=0; if(selIdx>=nWks)selIdx=nWks-1;
 
-  // ── 1. KPI CARDS — compare last two weeks ────────────────────
-  const wPrev=_W[nWks-2]?.totals||{};
-  const wCurr=_W[nWks-1]?.totals||{};
-  const wPrevL=(_W[nWks-2]?.wk||`W${nWks-1}`)+' · '+(_W[nWks-2]?.label||'');
-  const wCurrL=(_W[nWks-1]?.wk||`W${nWks}`)+' · '+(_W[nWks-1]?.label||'');
+  // ── 1. KPI CARDS — compare selected week vs its predecessor ──
+  const wPrev=selIdx>0?(_W[selIdx-1]?.totals||{}):{};
+  const wCurr=_W[selIdx]?.totals||{};
+  const wPrevL=selIdx>0?((_W[selIdx-1]?.wk||`W${selIdx}`)+' · '+(_W[selIdx-1]?.label||'')):'Baseline';
+  const wCurrL=(_W[selIdx]?.wk||`W${selIdx+1}`)+' · '+(_W[selIdx]?.label||'');
   const wFirstL=(_W[0]?.wk||'W1')+' · '+(_W[0]?.label||'');
   const hePct=wCurr.mobile_qty?+((wCurr.highend_qty||0)/wCurr.mobile_qty*100).toFixed(1):(wCurr.gmv?+(wCurr.highend/wCurr.gmv*100).toFixed(1):0);
   const aiotPct=wCurr.gmv?+(wCurr.aiot/wCurr.gmv*100).toFixed(1):0;
