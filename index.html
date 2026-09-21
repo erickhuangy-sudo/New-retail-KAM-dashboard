@@ -1642,7 +1642,7 @@ function buildAnalysisExtra(stores, info) {
   const sumF = (fld, m) => m ? stores.reduce((a,s) => a+(s.months[m]?.[fld]||0), 0) : 0;
   const fvN = v => v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':Math.round(v).toLocaleString();
   const totGmv = sumF('gmv', mn);
-  const _liveFilterAE=j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.sid));};
+  const _liveFilterAE=j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.id||j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.id||j.sid));};
   const totTgt = (mn==='Jul'&&typeof _JULY!=='undefined')
     ? Object.values(_JULY.stores).filter(_liveFilterAE).reduce((a,j)=>a+(j.target||0),0)
     : (mn==='Aug'&&typeof _AUG!=='undefined')
@@ -1765,7 +1765,7 @@ function buildKPIPace(stores,info){
 
   const gmv=sum('gmv');
   // For July: sum targets directly from _JULY.stores to include all stores (even those not in D)
-  const _tgtFilter=j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.sid));};
+  const _tgtFilter=j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.id||j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.id||j.sid));};
   const tgt=(mn==='Jul'&&typeof _JULY!=='undefined')
     ?Object.values(_JULY.stores).filter(_tgtFilter).reduce((a,j)=>a+(j.target||0),0)
     :(mn==='Aug'&&typeof _AUG!=='undefined')
@@ -1788,7 +1788,7 @@ function buildKPIPace(stores,info){
 
   // Sub-metrics — targets from _JULY.stores directly (same filter as GMV target) to include all stores
   const liveSubTgt=(key)=>{
-    const _liveFilter=j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.sid));};
+    const _liveFilter=j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.id||j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.id||j.sid));};
     if(mn==='Jul'&&typeof _JULY!=='undefined') return Object.values(_JULY.stores).filter(_liveFilter).reduce((a,j)=>a+(j[key]||0),0);
     if(mn==='Aug'&&typeof _AUG!=='undefined') return Object.values(_AUG.stores).filter(_liveFilter).reduce((a,j)=>a+(j[key]||0),0);
     if(mn==='Sep'&&typeof _SEP!=='undefined') return Object.values(_SEP.stores).filter(_liveFilter).reduce((a,j)=>a+(j[key]||0),0);
@@ -2900,11 +2900,11 @@ function buildRiskView(){
   if(atRisk.length){
     const shortfall=atRisk.reduce((s,d)=>s+d.gap,0);
     const totTgt=(mn==='Jul'&&typeof _JULY!=='undefined')
-        ?Object.values(_JULY.stores).filter(j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.sid));}).reduce((a,j)=>a+(j.target||0),0)
+        ?Object.values(_JULY.stores).filter(j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.id||j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.id||j.sid));}).reduce((a,j)=>a+(j.target||0),0)
         :(mn==='Aug'&&typeof _AUG!=='undefined')
-        ?Object.values(_AUG.stores).filter(j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.sid));}).reduce((a,j)=>a+(j.target||0),0)
+        ?Object.values(_AUG.stores).filter(j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.id||j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.id||j.sid));}).reduce((a,j)=>a+(j.target||0),0)
         :(mn==='Sep'&&typeof _SEP!=='undefined')
-        ?Object.values(_SEP.stores).filter(j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.sid));}).reduce((a,j)=>a+(j.target||0),0)
+        ?Object.values(_SEP.stores).filter(j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.id||j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.id||j.sid));}).reduce((a,j)=>a+(j.target||0),0)
         :sd.reduce((s,d)=>s+d.target,0);
     insights.push({sev:shortfall>5e6?'red':'yellow',icon:'',
       title:`${atRisk.length} ${t('r1Title')}`,
@@ -3105,7 +3105,7 @@ function buildRiskView(){
   // ── OVERALL VERDICT ─────────────────────────────────────────────────────────
   const totGmv=sd.reduce((s,d)=>s+d.gmv,0);
   // Use ALL _JULY stores for totTgt to match Analysis and Daily pages
-  const _liveFilterDV=j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.sid));};
+  const _liveFilterDV=j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.id||j.sid]||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.id||j.sid));};
   const totTgt=(mn==='Jul'&&typeof _JULY!=='undefined')
     ?Object.values(_JULY.stores).filter(_liveFilterDV).reduce((a,j)=>a+(j.target||0),0)
     :(mn==='Aug'&&typeof _AUG!=='undefined')
@@ -3865,7 +3865,7 @@ function buildDailyView(){
   const dailyAvg=de>0?totalCumul/de:0;
   const forecastTotal=Math.round(dailyAvg*dm);
   // Use ALL _JULY stores for totalTarget (not just cumul>0) to match Analysis page
-  const totalTarget=_src?Object.values(_src.stores).filter(j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.sid]||j.retailer||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.sid));}).reduce((a,j)=>a+(j.target||0),0)
+  const totalTarget=_src?Object.values(_src.stores).filter(j=>{if(selRets.size>=allRets.length&&selStoreIds.size===0)return true;const r=RMAP[j.id||j.sid]||j.retailer||'Unknown';return selRets.has(r)&&(selStoreIds.size===0||selStoreIds.has(j.id||j.sid));}).reduce((a,j)=>a+(j.target||0),0)
     :all.filter(s=>s.target>0).reduce((s,d)=>s+d.target,0);
   const forecastPct=totalTarget?forecastTotal/totalTarget*100:null;
   const progPct=totalTarget?Math.min(100,totalCumul/totalTarget*100):null;
