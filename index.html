@@ -2236,6 +2236,10 @@ function buildSummaryCards(stores, info){
   const padASP_p=(pad_qty_p&&pad_rev_p)?Math.round(pad_rev_p/pad_qty_p):null;
   const aiotASP=aiot_qty_c?Math.round(aiot_rev_c/aiot_qty_c):null;
   const aiotASP_p=(aiot_qty_p&&aiot_rev_p)?Math.round(aiot_rev_p/aiot_qty_p):null;
+  const totalUnits_c=mob_qty_c+pad_qty_c+aiot_qty_c;
+  const totalUnits_p=prv?(mob_qty_p||0)+(pad_qty_p||0)+(aiot_qty_p||0):null;
+  const totalASP=totalUnits_c?Math.round(gmv_c/totalUnits_c):null;
+  const totalASP_p=(totalUnits_p&&gmv_p)?Math.round(gmv_p/totalUnits_p):null;
 
   // Color helper for achievement %
   const achCol=(v)=>v==null?'#64748b':v>=100?'#22c55e':v>=80?'#f59e0b':'#ef4444';
@@ -2287,6 +2291,7 @@ function buildSummaryCards(stores, info){
     </div>`;
 
   document.getElementById('achRow').innerHTML=
+    aspCard('Total ASP','#a78bfa',totalASP,totalASP_p,totalUnits_c,totalUnits_p)+
     aspCard('Mobile ASP','#f59e0b',mobASP,mobASP_p,mob_qty_c,mob_qty_p)+
     aspCard('AIOT ASP','#3b82f6',aiotASP,aiotASP_p,aiot_qty_c,aiot_qty_p)+
     aspCard('High-end ASP','#3b82f6',heASP,heASP_p,he_qty_c,he_qty_p)+
