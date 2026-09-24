@@ -336,6 +336,7 @@ tr:hover td{background:#162135}
     #mod-close:hover{background:var(--red);color:#fff}
     #mod-body .kcard,#mod-body .ach-card,#mod-body .rc-card,#mod-body .hero-sub,#mod-body .abox{transform:none!important;box-shadow:none!important;border-radius:6px;width:100%;box-sizing:border-box;font-size:1em;padding:0!important;zoom:2.2}
     #mod-body svg{width:100%!important;height:auto!important}
+    #mod-body .donut-wrap{width:100%!important;max-width:none!important;flex:1 1 auto!important}
     #mod-body .al-list{max-height:60vh;overflow-y:auto}
     #mod-body .al-item{font-size:1em;padding:7px 8px}
     
@@ -696,7 +697,7 @@ const DAYS={'Jan':31,'Feb':28,'Mar':31,'Apr':30,'May':31,'Jun':30,'Jul':31,'Aug'
 const vpd=(v,mn)=>v&&(DAYS[mn]||30)?+(v/(DAYS[mn]||30)).toFixed(1):null;
 
 // ─── STATE ───
-let selMonth='Jun', selPeriod='month', selCat='all', _ppCat='gmv';
+let selMonth='Jun', selPeriod='month', selCat='all', _ppCat='gmv', _ppCatTotal='gmv';
 const allRets=[...new Set(STORES.map(s=>s.retailer||RMAP[s.id]||'Unknown'))].filter(r=>r&&r!=='-');
 let selRets=new Set(allRets);
 
@@ -1933,7 +1934,7 @@ return `<div class="hero-sub" style="cursor:pointer" onclick="expandCard(this)">
 
 // ─── SVG DONUT HELPER (with leader lines + arrowheads) ───
 function svgDonut(segs, centerLabel, centerVal){
-  const W=420,H=310,cx=210,cy=155,R=80,ri=50;
+  const W=380,H=278,cx=190,cy=139,R=70,ri=44;
   const fx=v=>v.toFixed(1),fy=v=>v.toFixed(1);
   const total=segs.reduce((a,s)=>a+(s.v||0),0);
   if(!total) return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="auto"></svg>`;
@@ -2963,6 +2964,8 @@ function buildPartnerPerf(){
     const prevN=prevMn?stores.filter(st=>st.months[prevMn]&&st.months[prevMn].gmv>0).length||1:0;
     const prevAvg=prevN>0?prevSum/prevN:0;
     const mom=prevAvg>0?+((currAvg-prevAvg)/prevAvg*100).toFixed(1):null;
+    // MoM total (sum not avg/store)
+    const momTot=prevSum>0?+((currSum-prevSum)/prevSum*100).toFixed(1):null;
     // QoQ
     const q3sum=q3mns.reduce((s,m)=>s+stores.reduce((s2,st)=>s2+getCatVal(st.months[m],_ppCat),0),0);
     const q3N=q3mns.reduce((n,m)=>n+stores.filter(st=>st.months[m]&&st.months[m].gmv>0).length,0)||1;
@@ -2971,8 +2974,10 @@ function buildPartnerPerf(){
     const q2N=q2mns.reduce((n,m)=>n+stores.filter(st=>st.months[m]&&st.months[m].gmv>0).length,0)||1;
     const q2avg=q2sum/q2N;
     const qoq=q2avg>0?+((q3avg-q2avg)/q2avg*100).toFixed(1):null;
+    // QoQ total (sum not avg/store)
+    const qoqTot=q2sum>0?+((q3sum-q2sum)/q2sum*100).toFixed(1):null;
     // WoW (Sep only via WOW_SEP)
-    let wow=null;
+    let wow=null; let wowTot=null;
     if(WOW_SEP&&WOW_SEP.length>=2){
       const curW=WOW_SEP[WOW_SEP.length-1];
       const prvW=WOW_SEP[WOW_SEP.length-2];
@@ -2986,9 +2991,13 @@ function buildPartnerPerf(){
         const cr=cw.sum/Math.max(cw.days,1)/Math.max(cw.n,1);
         const pr=pw.sum/Math.max(pw.days,1)/Math.max(pw.n,1);
         wow=pr>0?+((cr-pr)/pr*100).toFixed(1):null;
+        // WoW total (total sum/day, not normalized per store)
+        const crt=cw.sum/Math.max(cw.days,1);
+        const prt=pw.sum/Math.max(pw.days,1);
+        wowTot=prt>0?+((crt-prt)/prt*100).toFixed(1):null;
       }
     }
-    return {name:p.name,color:p.color,storeCount:currN,currSum,currAvg,mom,qoq,wow};
+    return {name:p.name,color:p.color,storeCount:currN,currSum,currAvg,mom,qoq,wow,momTot,qoqTot,wowTot};
   });
 
   const grandTotal=rows.reduce((s,r)=>s+r.currSum,0);
@@ -3064,9 +3073,108 @@ function buildPartnerPerf(){
 
   const wowNote=WOW_SEP&&WOW_SEP.length>=2?`${WOW_SEP[WOW_SEP.length-1].label} vs ${WOW_SEP[WOW_SEP.length-2].label}`:'—';
 
+  // ── Partner Summary: Donut + compact table — uses _ppCatTotal (independent) ─
+  const _ppSummaryHtml=(()=>{
+    const cat=_ppCatTotal;
+    const isHeT=cat==='he';
+    const fdT=v=>isHeT?Math.round(v).toLocaleString()+' u':(v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':Math.round(v).toLocaleString());
+
+    // Compute rowsT from partnerMap using _ppCatTotal
+    const rowsT=Object.values(partnerMap).map(p=>{
+      const st=p.stores;
+      const cSum=st.reduce((s,x)=>s+getCatVal(x.months[mn],cat),0);
+      const cN=st.filter(x=>x.months[mn]&&x.months[mn].gmv>0).length||1;
+      const pSum=prevMn?st.reduce((s,x)=>s+getCatVal(x.months[prevMn],cat),0):0;
+      const q3s=q3mns.reduce((s,m)=>s+st.reduce((s2,x)=>s2+getCatVal(x.months[m],cat),0),0);
+      const q2s=q2mns.reduce((s,m)=>s+st.reduce((s2,x)=>s2+getCatVal(x.months[m],cat),0),0);
+      const momT=pSum>0?+((cSum-pSum)/pSum*100).toFixed(1):null;
+      const qoqT=q2s>0?+((q3s-q2s)/q2s*100).toFixed(1):null;
+      let wowT=null;
+      if(WOW_SEP&&WOW_SEP.length>=2){
+        const cw=WOW_SEP[WOW_SEP.length-1],pw=WOW_SEP[WOW_SEP.length-2];
+        const cws=cw.stores.filter(s=>RMAP[s.id]===p.name);
+        const pws=pw.stores.filter(s=>RMAP[s.id]===p.name);
+        if(cws.length&&pws.length){
+          const cs=cws.reduce((s,x)=>s+getCatWow(x,cat),0)/Math.max(cw.days,1);
+          const ps=pws.reduce((s,x)=>s+getCatWow(x,cat),0)/Math.max(pw.days,1);
+          wowT=ps>0?+((cs-ps)/ps*100).toFixed(1):null;
+        }
+      }
+      return {name:p.name,color:p.color,cSum,cN,momT,qoqT,wowT};
+    });
+    const grandT=rowsT.reduce((s,r)=>s+r.cSum,0);
+    rowsT.forEach(r=>{r.share=grandT>0?+(r.cSum/grandT*100).toFixed(1):0;});
+    rowsT.sort((a,b)=>b.cSum-a.cSum);
+
+    // Grand totals for Total row
+    const allSt=D.stores;
+    const tCurT=allSt.reduce((s,x)=>s+getCatVal(x.months[mn],cat),0);
+    const tCurN=allSt.filter(x=>x.months[mn]&&x.months[mn].gmv>0).length||1;
+    const tPrvT=prevMn?allSt.reduce((s,x)=>s+getCatVal(x.months[prevMn],cat),0):0;
+    const tPrvN=prevMn?allSt.filter(x=>x.months[prevMn]&&x.months[prevMn].gmv>0).length||1:0;
+    const totMomT=tPrvN>0&&tPrvT>0?+((tCurT/tCurN-tPrvT/tPrvN)/(tPrvT/tPrvN)*100).toFixed(1):null;
+    const tQ3T=q3mns.reduce((s,m)=>s+allSt.reduce((s2,x)=>s2+getCatVal(x.months[m],cat),0),0);
+    const tQ3N=q3mns.reduce((n,m)=>n+allSt.filter(x=>x.months[m]&&x.months[m].gmv>0).length,0)||1;
+    const tQ2T=q2mns.reduce((s,m)=>s+allSt.reduce((s2,x)=>s2+getCatVal(x.months[m],cat),0),0);
+    const tQ2N=q2mns.reduce((n,m)=>n+allSt.filter(x=>x.months[m]&&x.months[m].gmv>0).length,0)||1;
+    const totQoqT=tQ2T>0?+((tQ3T/tQ3N-tQ2T/tQ2N)/(tQ2T/tQ2N)*100).toFixed(1):null;
+    let totWowT=null;
+    if(WOW_SEP&&WOW_SEP.length>=2){
+      const cw=WOW_SEP[WOW_SEP.length-1],pw=WOW_SEP[WOW_SEP.length-2];
+      const sumW=wk=>wk.stores.reduce((s,st)=>s+getCatWow(st,cat),0);
+      const cr=sumW(cw)/Math.max(cw.days,1)/Math.max(cw.stores.length,1);
+      const pr=sumW(pw)/Math.max(pw.days,1)/Math.max(pw.stores.length,1);
+      totWowT=pr>0?+((cr-pr)/pr*100).toFixed(1):null;
+    }
+
+    // Category buttons for total section
+    const catDefs=[{k:'gmv',lk:'ppTotalGMV'},{k:'mob',lk:'ppSmartphone'},{k:'pad',lk:'ppTablet'},{k:'aiot',lk:'ppAIOT'},{k:'he',lk:'ppHighend'}];
+    const catBtnsT=catDefs.map(c=>'<button class="pp-cat-btn'+(cat===c.k?' active':'')+'" onclick="_ppCatTotal=\''+c.k+'\';buildPartnerPerf()">'+t(c.lk)+'</button>').join('');
+    const headerT='<div class="pp-header" style="border-bottom:1px solid var(--border)">'
+      +'<span style="font-size:.55rem;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.08em">'+t('ppCategory')+':</span>'
+      +catBtnsT
+      +'</div>';
+
+    // Full-width table — same style as avg/store table below, but totals
+    const ppTR=rowsT.map(r=>'<tr>'
+      +'<td><span class="pp-dot-sm" style="background:'+r.color+'"></span><span class="pp-name">'+r.name+'</span></td>'
+      +'<td style="text-align:center;color:var(--t3)">'+r.cN+'</td>'
+      +'<td style="text-align:right;font-weight:600;color:var(--t1)">'+fdT(r.cSum)+'</td>'
+      +'<td style="text-align:center"><div class="pp-share-wrap"><span class="pp-share-pct">'+r.share+'%</span><div class="pp-share-bar-bg"><div class="pp-share-bar-fill" style="width:'+Math.min(r.share,100)+'%;background:'+r.color+'"></div></div></div></td>'
+      +'<td style="text-align:center"><span class="pp-delta '+fc(r.wowT)+'">'+fpct(r.wowT)+'</span></td>'
+      +'<td style="text-align:center"><span class="pp-delta '+fc(r.momT)+'">'+fpct(r.momT)+'</span></td>'
+      +'<td style="text-align:center"><span class="pp-delta '+fc(r.qoqT)+'">'+fpct(r.qoqT)+'</span></td>'
+      +'</tr>').join('');
+    const totStoresT=rowsT.reduce((s,r)=>s+r.cN,0);
+    const ppTotalRowT='<tr class="pp-total-row">'
+      +'<td style="color:var(--t2)">'+t('ppTotal')+'</td>'
+      +'<td style="text-align:center;color:var(--t2)">'+totStoresT+'</td>'
+      +'<td style="text-align:right;color:var(--t1)">'+fdT(grandT)+'</td>'
+      +'<td style="text-align:center"><span class="pp-share-pct">100%</span></td>'
+      +'<td style="text-align:center"><span class="pp-delta '+fc(totWowT)+'">'+fpct(totWowT)+'</span></td>'
+      +'<td style="text-align:center"><span class="pp-delta '+fc(totMomT)+'">'+fpct(totMomT)+'</span></td>'
+      +'<td style="text-align:center"><span class="pp-delta '+fc(totQoqT)+'">'+fpct(totQoqT)+'</span></td>'
+      +'</tr>';
+    const ppTable='<div class="twrap"><table class="pp-table">'
+      +'<thead><tr>'
+        +'<th>'+t('ppPartner')+'</th>'
+        +'<th>'+t('ppStores')+'</th>'
+        +'<th>'+(isHeT?'Total Units':'Total GMV')+'</th>'
+        +'<th>'+t('ppShare')+'</th>'
+        +'<th>WoW<br><span style="font-size:.5rem;color:var(--t5)">Total</span></th>'
+        +'<th>MoM<br><span style="font-size:.5rem;color:var(--t5)">Total</span></th>'
+        +'<th>QoQ<br><span style="font-size:.5rem;color:var(--t5)">Total</span></th>'
+      +'</tr></thead>'
+      +'<tbody>'+ppTR+ppTotalRowT+'</tbody>'
+      +'</table></div>';
+
+    return headerT + ppTable;
+  })();
+
   sec.innerHTML=`
     <div class="slbl"><span data-i18n="ppTitle">${t('ppTitle')}</span></div>
     <div class="pp-section">
+      ${_ppSummaryHtml}
       <div class="pp-header">
         <span style="font-size:.58rem;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.08em">${t('ppCategory')}:</span>
         ${catBtns}
@@ -3492,12 +3600,25 @@ function buildRiskView(){
   qsvg+=`<rect x="${x100.toFixed(1)}" y="${qPT}" width="${(qCW-(x100-qPL)).toFixed(1)}" height="${(qCH/2).toFixed(1)}" fill="#22c55e0a"/>`;
   qsvg+=`<rect x="${qPL}" y="${ymid.toFixed(1)}" width="${(x100-qPL).toFixed(1)}" height="${(qCH/2).toFixed(1)}" fill="#ef444412"/>`;
   qsvg+=`<rect x="${x100.toFixed(1)}" y="${ymid.toFixed(1)}" width="${(qCW-(x100-qPL)).toFixed(1)}" height="${(qCH/2).toFixed(1)}" fill="#f59e0b08"/>`;
-  // Quadrant labels + counts
-  const qML=(qPL+(x100-qPL)/2).toFixed(0),qMR=(x100+(qCW-(x100-qPL))/2).toFixed(0);
-  qsvg+=`<text x="${qML}" y="${(qPT+11)}" fill="#60a5fa" font-size="8.5" text-anchor="middle" font-weight="700">${t('quadRiseL')} (${qRise})</text>`;
-  qsvg+=`<text x="${qMR}" y="${(qPT+11)}" fill="#4ade80" font-size="8.5" text-anchor="middle" font-weight="700">${t('quadStarL')} (${qStar})</text>`;
-  qsvg+=`<text x="${qML}" y="${(qPT+qCH-4).toFixed(0)}" fill="#f87171" font-size="8.5" text-anchor="middle" font-weight="700">${t('quadCritL')} (${qCrit})</text>`;
-  qsvg+=`<text x="${qMR}" y="${(qPT+qCH-4).toFixed(0)}" fill="#fbbf24" font-size="8.5" text-anchor="middle" font-weight="700">${t('quadMatL')} (${qMat})</text>`;
+  // Quadrant labels — placed in CORNERS to avoid overlapping dots; tspan wrap at ' / '
+  const _qLbl=(x,y,fill,key,cnt,anchor,isBottom)=>{
+    const full=t(key)+' ('+cnt+')';
+    const sep=full.indexOf(' / ');
+    const fs=7;
+    if(sep<0){
+      const yy=isBottom?y-1:y+1;
+      return '<text x="'+x+'" y="'+yy+'" fill="'+fill+'" font-size="'+fs+'" text-anchor="'+anchor+'" font-weight="700" opacity=".9">'+full+'</text>';
+    }
+    const l1=full.slice(0,sep),l2=full.slice(sep+3);
+    const y1=isBottom?y-8:y, y2=isBottom?y:y+8;
+    return '<text x="'+x+'" fill="'+fill+'" font-size="'+fs+'" text-anchor="'+anchor+'" font-weight="700" opacity=".9"><tspan x="'+x+'" y="'+y1+'">'+l1+'</tspan><tspan x="'+x+'" y="'+y2+'">'+l2+'</tspan></text>';
+  };
+  const qCL=qPL+5, qCR=(qW-qPR-5);
+  const qYT=qPT+8, qYB=qPT+qCH-6;
+  qsvg+=_qLbl(qCL,qYT,'#60a5fa','quadRiseL',qRise,'start',false);
+  qsvg+=_qLbl(qCR,qYT,'#4ade80','quadStarL',qStar,'end',false);
+  qsvg+=_qLbl(qCL,qYB,'#f87171','quadCritL',qCrit,'start',true);
+  qsvg+=_qLbl(qCR,qYB,'#fbbf24','quadMatL',qMat,'end',true);
   // Dividers
   qsvg+=`<line x1="${x100.toFixed(1)}" y1="${qPT}" x2="${x100.toFixed(1)}" y2="${(qPT+qCH)}" stroke="#ffffff" stroke-width="1" opacity=".15" stroke-dasharray="4,3"/>`;
   qsvg+=`<line x1="${qPL}" y1="${ymid.toFixed(1)}" x2="${(qW-qPR)}" y2="${ymid.toFixed(1)}" stroke="#ffffff" stroke-width="1" opacity=".15" stroke-dasharray="4,3"/>`;
