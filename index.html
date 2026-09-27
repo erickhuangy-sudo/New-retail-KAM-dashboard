@@ -1999,8 +1999,10 @@ function svgDonut(segs, centerLabel, centerVal){
     </svg>`;
   }
 
-  // define arrowhead markers per color would be complex;
-  // instead draw small filled triangle at arc surface
+  // ── Pass 1: collect arc geometry + initial label positions ──
+  const RADIAL=14, HORIZ=44, LROW=14; // LROW = row height per label (name+pct)
+  const labelInfos=[]; // {mid,isR,initY,col,lbl,pct,sub,arrTip_x,arrTip_y,p1x,p1y,p2x,p2y}
+
   segs.forEach(s=>{
     if(!s.v) return;
     const sw=s.v/total*2*Math.PI;
@@ -2015,43 +2017,64 @@ function svgDonut(segs, centerLabel, centerVal){
     const lg=sw>Math.PI?1:0;
     arcs+=`<path d="M${fx(x1)},${fy(y1)} A${R},${R} 0 ${lg} 1 ${fx(x2)},${fy(y2)} L${fx(ix1)},${fy(iy1)} A${ri},${ri} 0 ${lg} 0 ${fx(ix2)},${fy(iy2)}Z" fill="${s.col}" opacity=".9" stroke="var(--bg0)" stroke-width="1.4"/>`;
 
-    // ── leader line only for segments >= 3% ──
     if(pct>=3){
       const isR=Math.cos(mid)>=0;
-      const RADIAL=14, HORIZ=44;
-
-      // elbow point
-      const ex=cx+(R+RADIAL)*Math.cos(mid);
       const ey=cy+(R+RADIAL)*Math.sin(mid);
-      // foot point (horizontal from elbow)
-      const fx2=ex+(isR?HORIZ:-HORIZ);
-      const fy2=ey;
-
-      // arrowhead at arc surface (small triangle pointing outward)
       const arrTip_x=cx+(R+1)*Math.cos(mid), arrTip_y=cy+(R+1)*Math.sin(mid);
-      const perpA=mid+Math.PI/2;
-      const sz=3.5;
-      const p1x=cx+(R-5)*Math.cos(mid)+sz*Math.cos(perpA);
-      const p1y=cy+(R-5)*Math.sin(mid)+sz*Math.sin(perpA);
-      const p2x=cx+(R-5)*Math.cos(mid)-sz*Math.cos(perpA);
-      const p2y=cy+(R-5)*Math.sin(mid)-sz*Math.sin(perpA);
+      const perpA=mid+Math.PI/2, sz=3.5;
+      labelInfos.push({
+        mid,isR,initY:ey,col:s.col,
+        lbl:s.lbl.length>14?s.lbl.slice(0,13)+'…':s.lbl,
+        pct:pct.toFixed(1),sub:s.sub||'',
+        arrTip_x,arrTip_y,
+        p1x:cx+(R-5)*Math.cos(mid)+sz*Math.cos(perpA), p1y:cy+(R-5)*Math.sin(mid)+sz*Math.sin(perpA),
+        p2x:cx+(R-5)*Math.cos(mid)-sz*Math.cos(perpA), p2y:cy+(R-5)*Math.sin(mid)-sz*Math.sin(perpA)
+      });
+    }
+    angle+=sw;
+  });
 
-      leaders+=`<polygon points="${fx(p1x)},${fy(p1y)} ${fx(p2x)},${fy(p2y)} ${fx(arrTip_x)},${fy(arrTip_y)}" fill="${s.col}"/>`;
-      leaders+=`<line x1="${fx(arrTip_x)}" y1="${fy(arrTip_y)}" x2="${fx(ex)}" y2="${fy(ey)}" stroke="${s.col}" stroke-width="1.1" opacity=".8"/>`;
-      leaders+=`<line x1="${fx(ex)}" y1="${fy(ey)}" x2="${fx(fx2)}" y2="${fy(fy2)}" stroke="${s.col}" stroke-width="1.1" opacity=".8"/>`;
-
-      // text: name above foot, pct below, optional sub-annotation
-      const anchor=isR?'start':'end';
-      const tx=fx2+(isR?3:-3);
-      const shortName=s.lbl.length>14?s.lbl.slice(0,13)+'…':s.lbl;
-      texts+=`<text x="${fx(tx)}" y="${fy(fy2-3)}" text-anchor="${anchor}" fill="var(--t2)" font-size="8.5" font-weight="500" font-family="inherit">${shortName}</text>`;
-      texts+=`<text x="${fx(tx)}" y="${fy(fy2+7)}" text-anchor="${anchor}" fill="${s.col}" font-size="8" font-weight="700" font-family="inherit">${pct.toFixed(1)}%</text>`;
-      if(s.sub){
-        texts+=`<text x="${fx(tx)}" y="${fy(fy2+18)}" text-anchor="${anchor}" fill="var(--t4)" font-size="7" font-family="inherit">${s.sub}</text>`;
+  // ── Pass 2: collision avoidance — separate left/right, resolve overlaps ──
+  const MIN_GAP=LROW+4; // min vertical distance between two label baselines
+  ['R','L'].forEach(side=>{
+    const group=labelInfos.filter(l=>(side==='R')?l.isR:!l.isR).sort((a,b)=>a.initY-b.initY);
+    // assign finalY starting from initY, push down if overlapping previous
+    let prev=-9999;
+    group.forEach(l=>{
+      l.finalY=Math.max(l.initY, prev+MIN_GAP);
+      prev=l.finalY;
+    });
+    // if group exceeds bottom (H-10), pull everything up proportionally
+    if(group.length){
+      const last=group[group.length-1];
+      const over=last.finalY-(H-16);
+      if(over>0){
+        group.forEach((l,i)=>{ l.finalY-=over*(i+1)/group.length; });
+        // second pass to fix any new overlaps after upward shift
+        prev=-9999;
+        group.forEach(l=>{ l.finalY=Math.max(l.finalY,prev+MIN_GAP); prev=l.finalY; });
       }
     }
+  });
 
-    angle+=sw;
+  // ── Pass 3: draw leaders + text at finalY ──
+  labelInfos.forEach(l=>{
+    const ex=cx+(R+RADIAL)*Math.cos(l.mid);
+    const ey_orig=cy+(R+RADIAL)*Math.sin(l.mid);
+    const footX=ex+(l.isR?HORIZ:-HORIZ);
+    const footY=l.finalY;
+    const anchor=l.isR?'start':'end';
+    const tx=footX+(l.isR?3:-3);
+
+    leaders+=`<polygon points="${fx(l.p1x)},${fy(l.p1y)} ${fx(l.p2x)},${fy(l.p2y)} ${fx(l.arrTip_x)},${fy(l.arrTip_y)}" fill="${l.col}"/>`;
+    leaders+=`<line x1="${fx(l.arrTip_x)}" y1="${fy(l.arrTip_y)}" x2="${fx(ex)}" y2="${fy(ey_orig)}" stroke="${l.col}" stroke-width="1.1" opacity=".8"/>`;
+    leaders+=`<line x1="${fx(ex)}" y1="${fy(ey_orig)}" x2="${fx(footX)}" y2="${fy(footY)}" stroke="${l.col}" stroke-width="1.1" opacity=".6"/>`;
+
+    texts+=`<text x="${fx(tx)}" y="${fy(footY-3)}" text-anchor="${anchor}" fill="var(--t2)" font-size="8.5" font-weight="500" font-family="inherit">${l.lbl}</text>`;
+    texts+=`<text x="${fx(tx)}" y="${fy(footY+7)}" text-anchor="${anchor}" fill="${l.col}" font-size="8" font-weight="700" font-family="inherit">${l.pct}%</text>`;
+    if(l.sub){
+      texts+=`<text x="${fx(tx)}" y="${fy(footY+18)}" text-anchor="${anchor}" fill="var(--t4)" font-size="7" font-family="inherit">${l.sub}</text>`;
+    }
   });
 
   // center label
@@ -3535,7 +3558,7 @@ function buildMallView(){
     const he=d.he_rev,he_q=d.he_q,std=mob-he;
     const total=d.sepT;
     const pct=function(v){return total?Math.round(v/total*100):0;};
-    const mobPct=pct(mob),padPct=pct(pad),aiotPct=pct(aiot),hePct=mob?Math.round(he/mob*100):0;
+    const mobPct=pct(mob),padPct=pct(pad),aiotPct=pct(aiot),hePct=mob_q?Math.round(he_q/mob_q*100):0;
     const totalUnits=mob_q+pad_q+aiot_q;
     const totalASP=totalUnits?Math.round(total/totalUnits):0;
     const mobASP=mob_q?Math.round(mob/mob_q):0;
@@ -3569,17 +3592,24 @@ function buildMallView(){
     if(hasAiot){selGmv+=aiot;selUnits+=aiot_q;}
     if(isAll)selGmv=total;
     // ── GMV donut segments based on selection ──
+    // H-end vs Standard breakdown always uses UNIT values so % = unit penetration rate
+    var std_q=mob_q-he_q;
     var gmvSegs=[];
     if(isAll){
+      // All categories: revenue-based (cross-category comparison)
       gmvSegs=[{lbl:'Smartphone',v:std,col:'#f59e0b'},{lbl:'H-end',v:he,col:col},
                {lbl:'Tablet',v:pad,col:'#22c55e'},{lbl:'AIOT',v:aiot,col:'#3b82f6'}];
     } else if(catSet.has('he')&&!hasMob&&!hasPad&&!hasAiot){
-      gmvSegs=[{lbl:'H-end',v:he,col:col},{lbl:'Standard',v:std,col:'#475569'}];
+      // H-end only: unit-based so % = he_qty / mob_qty
+      gmvSegs=[{lbl:'H-end',v:he_q,col:col},{lbl:'Standard',v:std_q,col:'#475569'}];
+    } else if(hasMob&&!hasPad&&!hasAiot){
+      // Smartphone only: unit-based so % = he_qty / mob_qty (penetration rate)
+      gmvSegs=[{lbl:'Standard',v:std_q,col:'#f59e0b'},{lbl:'H-end',v:he_q,col:col}];
     } else {
+      // Mixed categories: revenue-based for cross-category comparison
       if(hasMob){gmvSegs.push({lbl:'Smartphone',v:std,col:'#f59e0b'});if(hasHe||hasMob)gmvSegs.push({lbl:'H-end',v:he,col:col});}
       if(hasPad)gmvSegs.push({lbl:'Tablet',v:pad,col:'#22c55e'});
       if(hasAiot)gmvSegs.push({lbl:'AIOT',v:aiot,col:'#3b82f6'});
-      // de-dup H-end: only add once if mob selected
       if(hasMob){gmvSegs=gmvSegs.filter(function(s,i,a){return a.findIndex(function(x){return x.lbl===s.lbl;})===i;});}
     }
     gmvSegs=gmvSegs.filter(function(s){return s.v>0;});
@@ -3595,28 +3625,8 @@ function buildMallView(){
       ].filter(function(s){return s.v>0;});
     }
     var gmvLabel=isAll?t('mallGmvBreak'):(catSet.size===1&&catSet.has('mob')?'SMARTPHONE':t('mallMix'));
+    var twoDonut=isAll&&aiotSegs.length>0;
     var donutArea;
-    if(isAll&&aiotSegs.length>0){
-      // Two donuts — use same donut-grid-2 class as Analysis page
-      donutArea='<div class="donut-grid-2">'
-        +'<div class="donut-wrap">'
-        +'<div class="donut-subtitle">'+gmvLabel+' · '+fM(total)+'</div>'
-        +svgDonut(gmvSegs,'GMV',fM(total))
-        +'</div>'
-        +'<div class="donut-wrap">'
-        +'<div class="donut-subtitle">AIOT BREAKDOWN · '+fM(aiot)+'</div>'
-        +svgDonut(aiotSegs,'AIOT',fM(aiot))
-        +'</div>'
-        +'</div>';
-    } else {
-      // Single donut — centered, max-width to match Analysis page
-      donutArea='<div style="display:flex;justify-content:center">'
-        +'<div class="donut-wrap" style="max-width:340px;width:100%">'
-        +'<div class="donut-subtitle">'+gmvLabel+' · '+fM(isAll?total:selGmv)+'</div>'
-        +svgDonut(gmvSegs,isAll?'GMV':'Mix',isAll?fM(total):fM(selGmv))
-        +'</div>'
-        +'</div>';
-    }
     // ── ASP cards (filtered by selection) ──
     var aspCard=function(lbl,val,units,accent,sub){
       return'<div style="background:#162032;border:1px solid #334155;border-top:2px solid '+accent+';border-radius:8px;padding:11px 13px">'
@@ -3639,11 +3649,32 @@ function buildMallView(){
     if(hasAiot){aspCards+=aspCard('AIOT ASP',aiotASP,aiot_q.toLocaleString()+' u','#3b82f6','');}
     var aspGrid='<div style="font-size:.62rem;font-weight:700;color:#475569;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">ASP SUMMARY — '+d.lbl+'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'+aspCards+'</div>';
-    return'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'+pillBar+'<span style="font-size:.58rem;color:#475569;margin-left:4px">กดได้หลายหมวด</span></div>'
-      +'<div style="display:flex;gap:14px;align-items:stretch">'
-      +'<div style="flex:1;min-width:0;background:#111114;border:1px solid #27272a;border-radius:10px;padding:16px 14px">'+donutArea+'</div>'
-      +'<div style="flex:0 0 280px;background:#111114;border:1px solid #27272a;border-radius:10px;padding:16px 14px">'+aspGrid+'</div>'
-      +'</div>';
+    var pillRow='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'+pillBar+'<span style="font-size:.58rem;color:#475569;margin-left:4px">กดได้หลายหมวด</span></div>';
+    var panelStyle='background:#111114;border:1px solid #27272a;border-radius:10px;padding:16px 14px';
+    var aspPanel='<div style="'+panelStyle+'">'+aspGrid+'</div>';
+    var subtitleStyle='font-size:.6rem;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600';
+    if(twoDonut){
+      // 3-column grid: GMV donut | AIOT donut | ASP summary — each gets equal space
+      var layout='<div style="display:grid;grid-template-columns:1fr 1fr 260px;gap:12px;align-items:start">'
+        +'<div style="'+panelStyle+'">'
+          +'<div style="'+subtitleStyle+'">'+gmvLabel+' · '+fM(total)+'</div>'
+          +'<div class="donut-wrap">'+svgDonut(gmvSegs,'GMV',fM(total))+'</div>'
+        +'</div>'
+        +'<div style="'+panelStyle+'">'
+          +'<div style="'+subtitleStyle+'">AIOT BREAKDOWN · '+fM(aiot)+'</div>'
+          +'<div class="donut-wrap">'+svgDonut(aiotSegs,'AIOT',fM(aiot))+'</div>'
+        +'</div>'
+        +aspPanel
+        +'</div>';
+      return pillRow+layout;
+    } else {
+      // Single donut — fill its panel fully (no centering), ASP on right
+      var singleDonut='<div style="'+panelStyle+'">'
+        +'<div style="'+subtitleStyle+'">'+gmvLabel+' · '+fM(isAll?total:selGmv)+'</div>'
+        +'<div class="donut-wrap">'+svgDonut(gmvSegs,isAll?'GMV':'Mix',isAll?fM(total):fM(selGmv))+'</div>'
+        +'</div>';
+      return pillRow+'<div style="display:flex;gap:12px;align-items:start">'+singleDonut+aspPanel+'</div>';
+    }
   };
 
 
