@@ -325,6 +325,11 @@ tr:hover td{background:#162135}
     .donut-wrap:hover{transform:scale(1.06);z-index:15;filter:drop-shadow(0 8px 24px rgba(0,0,0,.45))}
     .donut-wrap svg{transition:transform .22s ease;transform-origin:center center}
     .donut-wrap:hover svg{transform:scale(1.14)}
+    .mall-panel{transition:transform .18s ease,box-shadow .18s ease;cursor:default}
+    .mall-panel:hover{transform:scale(1.03) translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.45);position:relative;z-index:10}
+    .mall-tier-card{transition:transform .18s ease,box-shadow .18s ease;cursor:default}
+    .mall-tier-card:hover{transform:scale(1.04) translateY(-4px);box-shadow:0 18px 44px rgba(0,0,0,.5);position:relative;z-index:10}
+    .mall-row-hover:hover{background:#1e293b!important}
     .donut-section{transition:box-shadow .2s}
     .donut-section:hover{box-shadow:0 8px 32px rgba(0,0,0,.4)}
 
@@ -553,7 +558,16 @@ tr:hover td{background:#162135}
     <button class="mnav-tab" id="mnav-daily" onclick="setMainView('daily')">
       <span class="mni"></span> <span data-i18n="navDaily">Daily Upload</span>
     </button>
+    <button class="mnav-tab" id="mnav-mall" onclick="setMainView('mall')">
+      <span data-i18n="navMall">Mall Analysis</span>
+    </button>
   </nav>
+
+
+  <!-- ── Mall Analysis Section ── -->
+  <div id="mallSection" style="display:none;padding:0 0 40px 0">
+    <div id="mallContent"></div>
+  </div>
 
   <!-- ── Risk Analysis Section ── -->
   <div id="riskSection" style="display:none"></div>
@@ -843,9 +857,10 @@ function selectMonth(mn){
     midMonthDay=typeof _SEP!=='undefined'?_SEP.meta.de:0;
     if(selMainView!=='analysis'){
       selMainView='analysis';
-      ['analysis','risk','daily'].forEach(n=>document.getElementById('mnav-'+n)?.classList.toggle('active',n==='analysis'));
+      ['analysis','risk','daily','mall'].forEach(n=>document.getElementById('mnav-'+n)?.classList.toggle('active',n==='analysis'));
       document.getElementById('riskSection').style.display='none';
       document.getElementById('dailySection').style.display='none';
+      document.getElementById('mallSection').style.display='none';
       document.getElementById('analysisWrapper').style.display='';
     }
     renderAll();
@@ -859,9 +874,10 @@ function selectMonth(mn){
     midMonthDay=typeof _AUG!=='undefined'?_AUG.meta.de:0;
     if(selMainView!=='analysis'){
       selMainView='analysis';
-      ['analysis','risk','daily'].forEach(n=>document.getElementById('mnav-'+n)?.classList.toggle('active',n==='analysis'));
+      ['analysis','risk','daily','mall'].forEach(n=>document.getElementById('mnav-'+n)?.classList.toggle('active',n==='analysis'));
       document.getElementById('riskSection').style.display='none';
       document.getElementById('dailySection').style.display='none';
+      document.getElementById('mallSection').style.display='none';
       document.getElementById('analysisWrapper').style.display='';
     }
     renderAll();
@@ -876,9 +892,10 @@ function selectMonth(mn){
     // Switch to Analysis tab if needed
     if(selMainView!=='analysis'){
       selMainView='analysis';
-      ['analysis','risk','daily'].forEach(n=>document.getElementById('mnav-'+n)?.classList.toggle('active',n==='analysis'));
+      ['analysis','risk','daily','mall'].forEach(n=>document.getElementById('mnav-'+n)?.classList.toggle('active',n==='analysis'));
       document.getElementById('riskSection').style.display='none';
       document.getElementById('dailySection').style.display='none';
+      document.getElementById('mallSection').style.display='none';
       document.getElementById('analysisWrapper').style.display='';
     }
     renderAll();
@@ -1427,7 +1444,7 @@ const STRINGS={
     search:'Search',sortLbl:'Sort',selMonth:'Selected Month',
     noData:'No Data',runRate:'Run Rate',eomFcst:'EOM Forecast',
     storesLbl:'stores',daysLbl:'days',
-    navAnalysis:'Analysis',navRisk:'Risk Analysis',navDaily:'Daily Upload',
+    navAnalysis:'Analysis',navRisk:'Risk Analysis',navDaily:'Daily Upload',navMall:'Mall Analysis',
     riskTitle:'Risk Analysis',riskSub:'Automated sales risk analysis · For fast and accurate decision-making',
     riskLegend:'● High Risk = Act now ·  Watch = Monitor closely ·  Opportunity = Revenue upside',
     riskNoIssue:'No significant risks detected ✓',
@@ -1495,6 +1512,13 @@ const STRINGS={
     ppAvgStore:'Total GMV',ppShare:'% Share Contribution',ppAvgDay:'avg/day/store',ppAvgStore2:'avg/store',
     ppNote:'WoW = avg GMV per day per store',ppTotalGMV:'Total GMV',ppSmartphone:'Smartphone',
     ppTablet:'Tablet',ppAIOT:'AIOT',ppHighend:'High-end',ppUnknown:'Unknown',ppNoData:'No data',ppTotal:'Total',
+    mallTitle:'Shopping Mall Analysis',mallSub:'Store performance by mall tier',
+    mallAll:'All',mallMultiHint:'Multi-select',mallGmvBreak:'GMV BREAKDOWN',mallAiotBreak:'AIOT BREAKDOWN',
+    mallMix:'PRODUCT MIX',mallAspSum:'ASP SUMMARY',mallCombAsp:'Combined ASP',
+    mallStores:'Stores',mallSepGmv:'Sep EOM GMV',mallAvgStore:'Avg/Store/Mo',mallYtdAvg:'YTD avg',
+    mallTrend:'MONTHLY GMV TREND BY TIER · MOM GROWTH RATE SHOWN',
+    mallAvgTrend:'AVG GMV/STORE TREND BY TIER',mallPartner:'PARTNER DISTRIBUTION',
+    mallHePen:'H-END PENETRATION RATE · H-END UNITS + TOTAL SMARTPHONE UNITS SOLD',
   },
   th:{
     gmvTarget:'เป้า GMV',actGmv:'ยอด GMV จริง',tgtAch:'อัตราสำเร็จ',
@@ -1582,6 +1606,13 @@ const STRINGS={
     coreAiotDom:'AIOT ครองสัดส่วนถึง',coreAiotOf:'ของ GMV',coreAiotSub:'หมวดเดียวสัดส่วนสูง → เสี่ยงหาก AIOT ชะลอ',
     coreAiotIf:'หาก AIOT ชะลอ 20% จะกระทบ GMV ทันที ~',
     coreStoreAnalysis:' วิเคราะห์รายสาขา',
+    mallTitle:'วิเคราะห์ Shopping Mall',mallSub:'ประสิทธิภาพร้านค้าแบ่งตาม tier',
+    mallAll:'ทั้งหมด',mallMultiHint:'กดได้หลายหมวด',mallGmvBreak:'สัดส่วน GMV',mallAiotBreak:'สัดส่วน AIOT',
+    mallMix:'สัดส่วนสินค้า',mallAspSum:'สรุป ASP',mallCombAsp:'ASP รวม',
+    mallStores:'ร้านค้า',mallSepGmv:'GMV ก.ย. EOM',mallAvgStore:'เฉลี่ย/ร้าน/เดือน',mallYtdAvg:'เฉลี่ย YTD',
+    mallTrend:'แนวโน้ม GMV รายเดือน แบ่งตาม Tier',
+    mallAvgTrend:'GMV เฉลี่ย/ร้าน แบ่งตาม Tier',mallPartner:'การกระจายตัวของ Partner',
+    mallHePen:'อัตราการขาย H-END + จำนวนหน่วย H-END และ Smartphone ทั้งหมด',
   },
   zh:{
     gmvTarget:'GMV目标',actGmv:'实际GMV',tgtAch:'目标达成率',
@@ -1601,7 +1632,7 @@ const STRINGS={
     search:'搜索',sortLbl:'排序',selMonth:'所选月份',
     noData:'无数据',runRate:'运行率',eomFcst:'月末预测',
     storesLbl:'门店',daysLbl:'天',
-    navAnalysis:'分析',navRisk:'风险分析',navDaily:'每日上传',
+    navAnalysis:'分析',navRisk:'风险分析',navDaily:'每日上传',navMall:'商场分析',
     riskTitle:'Risk Analysis',riskSub:'自动化销售风险分析 · 快速精准辅助决策',
     riskLegend:'● 高风险 = 立即处理 ·  关注 = 密切跟踪 ·  机会 = 提升业绩',
     riskNoIssue:'未发现显著风险 ✓',
@@ -1670,6 +1701,13 @@ const STRINGS={
     ppAvgStore:'总GMV',ppShare:'贡献占比%',ppAvgDay:'均/天/店',ppAvgStore2:'均/店',
     ppNote:'WoW = 日均GMV/店',ppTotalGMV:'总GMV',ppSmartphone:'智能手机',
     ppTablet:'平板',ppAIOT:'AIOT',ppHighend:'高端',ppUnknown:'未知',ppNoData:'暂无数据',ppTotal:'合计',
+    mallTitle:'商场分析',mallSub:'按商场层级划分的门店表现',
+    mallAll:'全部',mallMultiHint:'可多选',mallGmvBreak:'GMV分解',mallAiotBreak:'AIOT分解',
+    mallMix:'产品组合',mallAspSum:'ASP摘要',mallCombAsp:'综合ASP',
+    mallStores:'门店数',mallSepGmv:'9月GMV',mallAvgStore:'均值/店/月',mallYtdAvg:'YTD均值',
+    mallTrend:'各层级月度GMV趋势',
+    mallAvgTrend:'各层级平均门店GMV趋势',mallPartner:'合作伙伴分布',
+    mallHePen:'高端渗透率 · 高端单位 + 智能手机总销量',
   }
 }
 function t(k){return(STRINGS[CL]||STRINGS.en)[k]||STRINGS.en[k]||k;}
@@ -2840,14 +2878,16 @@ function populateSepWOW(){
 
 function setMainView(v){
   selMainView=v;
-  ['analysis','risk','daily'].forEach(n=>{
+  ['analysis','risk','daily','mall'].forEach(n=>{
     document.getElementById('mnav-'+n).classList.toggle('active',n===v);
   });
   document.getElementById('riskSection').style.display=v==='risk'?'block':'none';
   document.getElementById('dailySection').style.display=v==='daily'?'block':'none';
+  document.getElementById('mallSection').style.display=v==='mall'?'block':'none';
   document.getElementById('analysisWrapper').style.display=v==='analysis'?'':'none';
   if(v==='risk') buildRiskView();
   else if(v==='daily') buildDailyView();
+  else if(v==='mall') buildMallView();
 }
 
 function setView(v){selView=v;renderAll();}
@@ -2886,6 +2926,7 @@ function renderAll(){
   // Always rebuild Risk/Daily views when active — regardless of WoW mode
   if(selMainView==='daily'){buildDailyView();if(showWoW){setTimeout(wireClicks,100);return;}}
   if(selMainView==='risk'){buildRiskView();if(showWoW){setTimeout(wireClicks,100);return;}}
+  if(selMainView==='mall'){buildMallView();if(showWoW){setTimeout(wireClicks,100);return;}}
   if(showWoW){
     const _ppSec=document.getElementById('partnerPerfSection');if(_ppSec)_ppSec.innerHTML='';
     const mnLabel=selMonth==='Sep'?`Sep. 2026 (W)`:selMonth==='Aug'?`Aug. 2026 (W)`:selMonth==='Jul'?`Jul. 2026 (W)`:`Jun. 2026 (W)`;
@@ -3201,6 +3242,690 @@ function buildPartnerPerf(){
 // ─── INIT moved to end of script (after _AUG defined) ───
 
 // ─── RISK ANALYSIS ───────────────────────────────────────────────────────
+
+function buildMallView(){
+  const el=document.getElementById('mallContent');
+  if(!el)return;
+  const de=_SEP.meta.de,dm=_SEP.meta.dm;
+
+  // ── Standard dashboard colors only ──────────────────────
+  // Premium: #3b82f6 (blue)  Mid-High: #22c55e (green)  Value: #f59e0b (amber)
+  const TIER_LABEL={premium:'Premium',midhigh:'Mid-High',value:'Value',other:'Other'};
+  const TIER_COLOR={premium:'#3b82f6',midhigh:'#22c55e',value:'#f59e0b',other:'#64748b'};
+  const TIER_BG={premium:'rgba(59,130,246,0.07)',midhigh:'rgba(34,197,94,0.07)',value:'rgba(245,158,11,0.07)',other:'rgba(100,116,139,0.05)'};
+  const TIER_BORDER={premium:'rgba(59,130,246,0.22)',midhigh:'rgba(34,197,94,0.22)',value:'rgba(245,158,11,0.22)',other:'rgba(100,116,139,0.18)'};
+
+  // ── Category colors (same as existing aspCard colors) ──
+  const CAT_COL={mob:'#f59e0b',pad:'#22c55e',aiot:'#3b82f6'};
+  const CAT_LBL={mob:'Smartphone',pad:'Tablet',aiot:'AIOT'};
+
+  const TIER_KW={
+    premium:['Siam Paragon'],
+    midhigh:['The Mall','Robinson','Dusit Central Park','Mega Bangna','One Bangkok',
+              'Happitat','Maya Lifestyle','Maya ','Terminal 21','Fashion Island','Seacon',
+              'Sahathai','Future Park','Market Village','V Square','Central'],
+    value:["Lotus's",'Lotus ','Big C','Zeer','Ayutthaya City Park',
+           'Taweekit','Fortune Town','IT Mall Fortune','Passione']
+  };
+
+  function getTier(name){
+    const n=name.toUpperCase();
+    for(const[t,kws]of Object.entries(TIER_KW)){for(const kw of kws){if(n.includes(kw.toUpperCase()))return t;}}
+    return'other';
+  }
+
+  // ── Build store profiles ───────────────────────────────
+  const allSids=new Set([...Object.keys(_JULY.stores),...Object.keys(_AUG.stores),...Object.keys(_SEP.stores)]);
+  const P={};
+  allSids.forEach(sid=>{
+    const j=_JULY.stores[sid],a=_AUG.stores[sid],s=_SEP.stores[sid];
+    const base=s||a||j;
+    const ret=RMAP[sid]||base.retailer||'?';
+    // ── Respect sidebar retailer filter ──
+    if(typeof selRets!=='undefined'&&selRets.size>0&&!selRets.has(ret))return;
+    const tier=getTier(base.name);
+    const julG=j?j.cumul:0,augG=a?a.cumul:0;
+    const sepEom=s?Math.round(s.cumul/de*dm):0;
+    P[sid]={
+      name:base.name,ret,tier,julG,augG,sepEom,
+      avgMo:Math.round((julG+augG+sepEom)/3),
+      mob:s?s.mob||0:0, mob_qty:s?s.mob_qty||0:0,
+      pad:s?s.pad||0:0, pad_qty:s?s.pad_qty||0:0,
+      aiot:s?s.aiot||0:0, aiot_qty:s?s.aiot_qty||0:0,
+      he_rev:s?s.highend_rev||s.highend||0:0,
+      he_qty:s?s.highend_qty||0:0,
+      cumul_sep:s?s.cumul:0,
+      band:s?s.band||0:0,    band_q:s?s.band_qty||0:0,
+      watch:s?s.watch||0:0,  watch_q:s?s.watch_qty||0:0,
+      phone:s?s.headphone||0:0, phone_q:s?s.headphone_qty||0:0,
+      wg:s?s.white_goods||0:0,  wg_q:s?s.white_goods_qty||0:0,
+      tv:s?s.tv||0:0,        tv_q:s?s.tv_qty||0:0,
+      eco:s?s.ecosystem||0:0,eco_q:s?s.ecosystem_qty||0:0,
+      other:s?s.other||0:0,  other_q:s?s.other_qty||0:0
+    };
+  });
+
+  const TIERS=['premium','midhigh','value'];
+  const GRP={premium:[],midhigh:[],value:[],other:[]};
+  Object.values(P).forEach(p=>GRP[p.tier].push(p));
+
+  function agg(ps){
+    const n=ps.length;
+    const julT=ps.reduce((t,p)=>t+p.julG,0);
+    const augT=ps.reduce((t,p)=>t+p.augG,0);
+    const sepT=ps.reduce((t,p)=>t+p.sepEom,0);
+    const mob=ps.reduce((t,p)=>t+p.mob,0), mob_q=ps.reduce((t,p)=>t+p.mob_qty,0);
+    const pad=ps.reduce((t,p)=>t+p.pad,0), pad_q=ps.reduce((t,p)=>t+p.pad_qty,0);
+    const aiot=ps.reduce((t,p)=>t+p.aiot,0), aiot_q=ps.reduce((t,p)=>t+p.aiot_qty,0);
+    const he_rev=ps.reduce((t,p)=>t+p.he_rev,0), he_q=ps.reduce((t,p)=>t+p.he_qty,0);
+    const catSum=mob+pad+aiot;
+    const band=ps.reduce((t,p)=>t+p.band,0),    band_q=ps.reduce((t,p)=>t+p.band_q,0);
+    const watch=ps.reduce((t,p)=>t+p.watch,0),  watch_q=ps.reduce((t,p)=>t+p.watch_q,0);
+    const phone=ps.reduce((t,p)=>t+p.phone,0),  phone_q=ps.reduce((t,p)=>t+p.phone_q,0);
+    const wg=ps.reduce((t,p)=>t+p.wg,0),        wg_q=ps.reduce((t,p)=>t+p.wg_q,0);
+    const tv=ps.reduce((t,p)=>t+p.tv,0),        tv_q=ps.reduce((t,p)=>t+p.tv_q,0);
+    const eco=ps.reduce((t,p)=>t+p.eco,0),      eco_q=ps.reduce((t,p)=>t+p.eco_q,0);
+    const other=ps.reduce((t,p)=>t+p.other,0),  other_q=ps.reduce((t,p)=>t+p.other_q,0);
+    return{n,julT,augT,sepT,catSum,
+      avgMo:n?Math.round((julT+augT+sepT)/(3*n)):0,
+      mob,mob_q,pad,pad_q,aiot,aiot_q,he_rev,he_q,
+      band,band_q,watch,watch_q,phone,phone_q,wg,wg_q,tv,tv_q,eco,eco_q,other,other_q,
+      mobPct:catSum?mob/catSum*100:0, padPct:catSum?pad/catSum*100:0, aiotPct:catSum?aiot/catSum*100:0,
+      hePct:mob_q?he_q/mob_q*100:0,
+      mobAsp:mob_q?Math.round(mob/mob_q):0, padAsp:pad_q?Math.round(pad/pad_q):0,
+      aiotAsp:aiot_q?Math.round(aiot/aiot_q):0, heAsp:he_q?Math.round(he_rev/he_q):0
+    };
+  }
+
+  const A={};
+  TIERS.forEach(t=>A[t]=agg(GRP[t]));
+
+  const fd=n=>new Intl.NumberFormat('en',{maximumFractionDigits:0}).format(n);
+  const fM=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':String(Math.round(n));
+  const totalSepGmv=TIERS.reduce((t,tr)=>t+A[tr].sepT,0);
+  const totalStores=TIERS.reduce((t,tr)=>t+A[tr].n,0);
+  const maxAvgMo=Math.max(...TIERS.map(t=>A[t].avgMo));
+
+  // ═══════════════════════════════════════════════════════
+  // 1. TIER KPI CARDS
+  // ═══════════════════════════════════════════════════════
+  const kpiCards=TIERS.map(t=>{
+    const g=A[t],col=TIER_COLOR[t];
+    const gmvShare=totalSepGmv?Math.round(g.sepT/totalSepGmv*100):0;
+    const storeShare=totalStores?Math.round(g.n/totalStores*100):0;
+    return`<div class="mall-tier-card" style="background:#18181b;border:1px solid #27272a;border-radius:10px;padding:18px 20px;flex:1;min-width:200px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <span style="color:#94a3b8;font-size:.78rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase">${TIER_LABEL[t]}</span>
+    <span style="font-size:.64rem;color:#64748b;background:#0f172a;padding:3px 8px;border-radius:4px;font-weight:600">${gmvShare}% GMV</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    <div>
+      <div style="color:#64748b;font-size:.6rem;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Stores</div>
+      <div style="color:#f1f5f9;font-size:1.9rem;font-weight:700;line-height:1">${g.n}</div>
+      <div style="color:#64748b;font-size:.6rem;margin-top:4px">${storeShare}% of total</div>
+    </div>
+    <div>
+      <div style="color:#64748b;font-size:.6rem;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Sep EOM GMV</div>
+      <div style="color:#f1f5f9;font-size:1.5rem;font-weight:700;line-height:1">${fM(g.sepT)}</div>
+      <div style="color:#64748b;font-size:.6rem;margin-top:4px">฿ THB</div>
+    </div>
+    <div>
+      <div style="color:#64748b;font-size:.6rem;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Avg/Store/Mo</div>
+      <div style="color:#f1f5f9;font-size:1.5rem;font-weight:700;line-height:1">${fM(g.avgMo)}</div>
+      <div style="color:#64748b;font-size:.6rem;margin-top:4px">YTD avg</div>
+    </div>
+  </div>
+</div>`;
+  }).join('');
+
+  // ═══════════════════════════════════════════════════════
+  // 2. CONCENTRATION BARS + BENCHMARK BARS (side by side)
+  // ═══════════════════════════════════════════════════════
+  function propBar(vals,labels,total,rowLabel){
+    const segs=vals.map((v,i)=>{
+      const w=total?Math.max(v/total*100,0.3):0;
+      return`<div style="flex:${w};background:${TIER_COLOR[TIERS[i]]};height:100%;min-width:2px;opacity:.82"></div>`;
+    }).join('');
+    const tags=vals.map((v,i)=>`<span style="font-size:.6rem;color:${TIER_COLOR[TIERS[i]]}">${labels[i]} ${total?Math.round(v/total*100):0}%</span>`).join('');
+    return`<div style="margin-bottom:10px">
+  <div style="font-size:.62rem;color:#64748b;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">${rowLabel}</div>
+  <div style="height:16px;display:flex;border-radius:3px;overflow:hidden;background:#1e293b">${segs}</div>
+  <div style="display:flex;gap:12px;margin-top:5px">${tags}</div>
+</div>`;
+  }
+
+  const concPanel=`<div class="mall-panel" style="background:#111114;border:1px solid #27272a;border-radius:10px;padding:18px">
+  <div style="font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Revenue & Store Concentration</div>
+  ${propBar(TIERS.map(t=>A[t].sepT),TIERS.map(t=>TIER_LABEL[t]),totalSepGmv,'Sep EOM GMV by Tier')}
+  ${propBar(TIERS.map(t=>A[t].n),TIERS.map(t=>TIER_LABEL[t]),totalStores,'Store Count by Tier')}
+  <div style="margin-top:14px;padding-top:12px;border-top:1px solid #1e293b;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+    ${TIERS.map(t=>`<div style="text-align:center">
+  <div style="color:${TIER_COLOR[t]};font-size:.62rem;font-weight:600">${TIER_LABEL[t]}</div>
+  <div style="color:#94a3b8;font-size:.7rem;font-weight:700;margin-top:2px">฿${fM(A[t].n?Math.round(A[t].sepT/A[t].n):0)}</div>
+  <div style="color:#64748b;font-size:.58rem">per store (Sep)</div>
+</div>`).join('')}
+  </div>
+</div>`;
+
+  const benchBars=TIERS.filter(t=>A[t].n>0).map(t=>{
+    const g=A[t],col=TIER_COLOR[t];
+    const h=Math.round(g.avgMo/maxAvgMo*80);
+    return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+      +'<div style="font-size:.68rem;color:#64748b;font-weight:700">'+fM(g.avgMo)+'</div>'
+      +'<div style="flex:1;min-height:0;display:flex;align-items:flex-end;justify-content:center;width:100%">'
+      +'<div style="width:44px;height:'+Math.max(4,h)+'px;background:'+col+';border-radius:3px 3px 0 0;opacity:.82"></div>'
+      +'</div>'
+      +'<div style="font-size:.6rem;color:'+col+';font-weight:600">'+TIER_LABEL[t]+'</div>'
+      +'<div style="font-size:.55rem;color:#64748b">'+g.n+' stores</div>'
+      +'</div>';
+  }).join('');
+
+  const multiplier=A.value&&A.value.avgMo?Math.round(A.premium.avgMo/A.value.avgMo*10)/10:0;
+  const benchPanel=`<div class="mall-panel" style="background:#111114;border:1px solid #27272a;border-radius:10px;padding:18px">
+  <div style="font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Avg GMV / Store / Month (YTD)</div>
+  <div style="display:flex;justify-content:space-around;align-items:stretch;height:130px;gap:4px">${benchBars}</div>
+  <div style="margin-top:12px;padding-top:10px;border-top:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:.62rem;color:#475569">Premium vs Value</div>
+    <div style="font-size:.78rem;color:#94a3b8;font-weight:700">${multiplier}× more per store</div>
+  </div>
+</div>`;
+
+  // ═══════════════════════════════════════════════════════
+  // 3. PRODUCT MIX + ASP LADDER (side by side)
+  // ═══════════════════════════════════════════════════════
+  const mixRows=TIERS.map(t=>{
+    const g=A[t],col=TIER_COLOR[t];
+    const pcts=[g.mobPct,g.padPct,g.aiotPct];
+    const cats=['mob','pad','aiot'];
+    const segs=cats.map((c,i)=>`<div style="flex:${Math.max(pcts[i],0.5)};background:${CAT_COL[c]};height:100%;opacity:.82"></div>`).join('');
+    const tags=cats.map((c,i)=>`<span style="font-size:.6rem;color:${CAT_COL[c]}">${CAT_LBL[c]} ${Math.round(pcts[i])}%</span>`).join('');
+    return`<div style="margin-bottom:10px">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+    <div style="width:66px;color:${col};font-size:.67rem;font-weight:700;flex-shrink:0;text-align:right">${TIER_LABEL[t]}</div>
+    <div style="flex:1;height:14px;display:flex;border-radius:2px;overflow:hidden;background:#1e293b">${segs}</div>
+  </div>
+  <div style="padding-left:74px;display:flex;gap:10px">${tags}</div>
+</div>`;
+  }).join('');
+
+  const mixPanel=`<div class="mall-panel" style="background:#111114;border:1px solid #27272a;border-radius:10px;padding:18px">
+  <div style="font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Product Revenue Mix by Tier</div>
+  ${mixRows}
+  <div style="margin-top:10px;padding-top:8px;border-top:1px solid #1e293b;display:flex;gap:14px">
+    ${['mob','pad','aiot'].map(c=>`<span style="display:flex;align-items:center;gap:4px;font-size:.6rem;color:#64748b"><span style="width:8px;height:8px;border-radius:2px;background:${CAT_COL[c]};display:inline-block"></span>${CAT_LBL[c]}</span>`).join('')}
+  </div>
+</div>`;
+
+  const ASP_DEF=[{k:'mobAsp',l:'Smartphone ASP'},{k:'heAsp',l:'H-end ASP'},{k:'padAsp',l:'Tablet ASP'},{k:'aiotAsp',l:'AIOT ASP'}];
+  const maxAsp=ASP_DEF.reduce((o,d)=>{o[d.k]=Math.max(...TIERS.map(t=>A[t][d.k]));return o;},{});
+  const aspRows=ASP_DEF.map(({k,l})=>`<div style="margin-bottom:12px">
+  <div style="font-size:.62rem;color:#64748b;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">${l}</div>
+  ${TIERS.map(t=>{const v=A[t][k],col=TIER_COLOR[t],w=maxAsp[k]?Math.round(v/maxAsp[k]*100):0;
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+  <div style="width:54px;font-size:.6rem;color:${col};text-align:right;flex-shrink:0">${TIER_LABEL[t]}</div>
+  <div style="flex:1;height:7px;background:#1e293b;border-radius:2px">
+    <div style="width:${w}%;height:7px;background:${col};border-radius:2px;opacity:.82"></div>
+  </div>
+  <div style="width:56px;font-size:.65rem;color:#94a3b8;text-align:right">${v?'฿'+fd(v):'—'}</div>
+</div>`;}).join('')}
+</div>`).join('');
+
+  const aspPanel=`<div class="mall-panel" style="background:#111114;border:1px solid #27272a;border-radius:10px;padding:18px">
+  <div style="font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">ASP Comparison by Tier (฿)</div>
+  ${aspRows}
+</div>`;
+
+  // ═══════════════════════════════════════════════════════
+  // 4. FLAGSHIP PENETRATION (ring gauges)
+  // ═══════════════════════════════════════════════════════
+  // ── H-end interactive section ─────────────────────────────────────────────
+  const _heD={};
+  TIERS.forEach(function(t){
+    const g=A[t];
+    _heD[t]={n:g.n,sepT:g.sepT,
+      mob:g.mob||0,mob_q:g.mob_q||0,
+      pad:g.pad||0,pad_q:g.pad_q||0,
+      aiot:g.aiot||0,aiot_q:g.aiot_q||0,
+      he_rev:g.he_rev||0,he_q:Math.round(g.he_q||0),
+      hePct:Math.round(g.hePct||0),heAsp:Math.round(g.heAsp||0),avgMo:Math.round(g.avgMo||0),
+      band:g.band||0,watch:g.watch||0,phone:g.phone||0,
+      wg:g.wg||0,tv:g.tv||0,eco:g.eco||0,other:g.other||0,
+      col:TIER_COLOR[t],lbl:TIER_LABEL[t]};
+  });
+  window._mallHeData=_heD;
+  if(!window._mallHeTier)window._mallHeTier='premium';
+  if(!window._mallHeCatSet)window._mallHeCatSet=new Set(['all']);
+  window._setMallHeTier=function(t){
+    window._mallHeTier=t;
+    TIERS.forEach(function(tt){
+      const b=document.getElementById('mallHeBtn_'+tt);
+      if(!b)return;
+      const active=tt===t,d=_heD[tt];
+      b.style.background=active?(d.col+'22'):'transparent';
+      b.style.color=d.col;
+      b.style.outline=active?('2px solid '+d.col):('1px solid '+d.col+'44');
+    });
+    window._renderMallHeFull();
+  };
+  window._setMallHeCat=function(c){
+    var cs=window._mallHeCatSet;
+    if(c==='all'){cs=new Set(['all']);}
+    else{
+      if(cs.has('all'))cs=new Set();
+      if(cs.has(c))cs.delete(c);else cs.add(c);
+      if(cs.size===0)cs=new Set(['all']);
+    }
+    window._mallHeCatSet=cs;
+    window._renderMallHeFull();
+  };
+  window._renderMallHeFull=function(){
+    const el=document.getElementById('mallHeContent');
+    if(el)el.innerHTML=window._renderMallHe(window._mallHeTier,window._mallHeCatSet);
+  };
+  window._renderMallHe=function(tier,catSet){
+    const d=_heD[tier],col=d.col;
+    if(!catSet||catSet.size===0)catSet=new Set(['all']);
+    var isAll=catSet.has('all');
+    var hasMob=isAll||catSet.has('mob');
+    var hasPad=isAll||catSet.has('pad');
+    var hasAiot=isAll||catSet.has('aiot');
+    var hasHe=isAll||catSet.has('he');
+    if(!d.n)return'<div style="color:#64748b;padding:20px">No data for this tier</div>';
+    const mob=d.mob,mob_q=d.mob_q,pad=d.pad,pad_q=d.pad_q,aiot=d.aiot,aiot_q=d.aiot_q;
+    const he=d.he_rev,he_q=d.he_q,std=mob-he;
+    const total=d.sepT;
+    const pct=function(v){return total?Math.round(v/total*100):0;};
+    const mobPct=pct(mob),padPct=pct(pad),aiotPct=pct(aiot),hePct=mob?Math.round(he/mob*100):0;
+    const totalUnits=mob_q+pad_q+aiot_q;
+    const totalASP=totalUnits?Math.round(total/totalUnits):0;
+    const mobASP=mob_q?Math.round(mob/mob_q):0;
+    const padASP=pad_q?Math.round(pad/pad_q):0;
+    const aiotASP=aiot_q?Math.round(aiot/aiot_q):0;
+    const heASP=d.heAsp||0;
+    // ── Category pills (multi-select) ──
+    const cats=[
+      {k:'all', lbl:t('mallAll'),        col:'#94a3b8', gmv:total,  qty:null},
+      {k:'mob', lbl:t('ppSmartphone'), col:'#f59e0b', gmv:mob,    qty:mob_q,  pct:mobPct},
+      {k:'pad', lbl:t('ppTablet'),     col:'#22c55e', gmv:pad,    qty:pad_q,  pct:padPct},
+      {k:'aiot',lbl:t('ppAIOT'),       col:'#3b82f6', gmv:aiot,   qty:aiot_q, pct:aiotPct},
+      {k:'he',  lbl:t('ppHighend'),      col:col,       gmv:he,     qty:he_q,   pct:hePct},
+    ].filter(function(c){return c.gmv>0||c.k==='all';});
+    const pillBar=cats.map(function(c){
+      var active=catSet.has(c.k);
+      var bg=active?(c.col+'22'):'transparent';
+      var bdr=active?('2px solid '+c.col):('1px solid '+c.col+'33');
+      var pctStr=c.pct!=null?' '+c.pct+'%':'';
+      return'<button onclick="_setMallHeCat(\''+c.k+'\')"'
+        +' style="flex:1;padding:5px 10px;border-radius:7px;border:none;outline:'+bdr+';background:'+bg+';cursor:pointer;text-align:left;transition:all .15s">'
+        +'<div style="font-size:.68rem;color:'+(active?c.col:'#64748b')+';white-space:nowrap">'+c.lbl+pctStr+'</div>'
+        +'<div style="font-size:.95rem;font-weight:700;color:'+(active?'#f1f5f9':'#94a3b8')+'">'+fM(c.gmv)+'</div>'
+        +(c.qty!=null?'<div style="font-size:.62rem;color:#94a3b8">'+c.qty.toLocaleString()+' u</div>':'')
+        +'</button>';
+    }).join('');
+    // ── Compute selected totals ──
+    var selGmv=0,selUnits=0;
+    if(hasMob){selGmv+=mob;selUnits+=mob_q;}
+    if(hasPad){selGmv+=pad;selUnits+=pad_q;}
+    if(hasAiot){selGmv+=aiot;selUnits+=aiot_q;}
+    if(isAll)selGmv=total;
+    // ── GMV donut segments based on selection ──
+    var gmvSegs=[];
+    if(isAll){
+      gmvSegs=[{lbl:'Smartphone',v:std,col:'#f59e0b'},{lbl:'H-end',v:he,col:col},
+               {lbl:'Tablet',v:pad,col:'#22c55e'},{lbl:'AIOT',v:aiot,col:'#3b82f6'}];
+    } else if(catSet.has('he')&&!hasMob&&!hasPad&&!hasAiot){
+      gmvSegs=[{lbl:'H-end',v:he,col:col},{lbl:'Standard',v:std,col:'#475569'}];
+    } else {
+      if(hasMob){gmvSegs.push({lbl:'Smartphone',v:std,col:'#f59e0b'});if(hasHe||hasMob)gmvSegs.push({lbl:'H-end',v:he,col:col});}
+      if(hasPad)gmvSegs.push({lbl:'Tablet',v:pad,col:'#22c55e'});
+      if(hasAiot)gmvSegs.push({lbl:'AIOT',v:aiot,col:'#3b82f6'});
+      // de-dup H-end: only add once if mob selected
+      if(hasMob){gmvSegs=gmvSegs.filter(function(s,i,a){return a.findIndex(function(x){return x.lbl===s.lbl;})===i;});}
+    }
+    gmvSegs=gmvSegs.filter(function(s){return s.v>0;});
+    var centerLbl=isAll?'GMV':fM(selGmv),centerVal=fM(isAll?total:selGmv);
+    // ── AIOT donut segments ──
+    var aiotSegs=[];
+    if(hasAiot){
+      aiotSegs=[
+        {lbl:'Watch',v:d.watch,col:'#3b82f6'},{lbl:'White Goods',v:d.wg,col:'#f59e0b'},
+        {lbl:'TV',v:d.tv,col:'#ef4444'},{lbl:'Headphone',v:d.phone,col:'#94a3b8'},
+        {lbl:'Band',v:d.band,col:'#22c55e'},{lbl:'Ecosystem',v:d.eco,col:'#64748b'},
+        {lbl:'Other',v:d.other,col:'#475569'},
+      ].filter(function(s){return s.v>0;});
+    }
+    var gmvLabel=isAll?t('mallGmvBreak'):(catSet.size===1&&catSet.has('mob')?'SMARTPHONE':t('mallMix'));
+    var donutArea;
+    if(isAll&&aiotSegs.length>0){
+      // Two donuts — use same donut-grid-2 class as Analysis page
+      donutArea='<div class="donut-grid-2">'
+        +'<div class="donut-wrap">'
+        +'<div class="donut-subtitle">'+gmvLabel+' · '+fM(total)+'</div>'
+        +svgDonut(gmvSegs,'GMV',fM(total))
+        +'</div>'
+        +'<div class="donut-wrap">'
+        +'<div class="donut-subtitle">AIOT BREAKDOWN · '+fM(aiot)+'</div>'
+        +svgDonut(aiotSegs,'AIOT',fM(aiot))
+        +'</div>'
+        +'</div>';
+    } else {
+      // Single donut — centered, max-width to match Analysis page
+      donutArea='<div style="display:flex;justify-content:center">'
+        +'<div class="donut-wrap" style="max-width:340px;width:100%">'
+        +'<div class="donut-subtitle">'+gmvLabel+' · '+fM(isAll?total:selGmv)+'</div>'
+        +svgDonut(gmvSegs,isAll?'GMV':'Mix',isAll?fM(total):fM(selGmv))
+        +'</div>'
+        +'</div>';
+    }
+    // ── ASP cards (filtered by selection) ──
+    var aspCard=function(lbl,val,units,accent,sub){
+      return'<div style="background:#162032;border:1px solid #334155;border-top:2px solid '+accent+';border-radius:8px;padding:11px 13px">'
+        +'<div style="color:'+accent+';font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px">'+lbl+'</div>'
+        +'<div style="color:#f1f5f9;font-size:1.4rem;font-weight:700;line-height:1">฿'+fd(val)+'</div>'
+        +'<div style="color:#64748b;font-size:.58rem;margin-top:4px">'+units+(sub?(' · '+sub):'')+'</div>'
+        +'</div>';
+    };
+    var selUnitsTotal=(hasMob?mob_q:0)+(hasPad?pad_q:0)+(hasAiot?aiot_q:0);
+    var selAsp=selUnitsTotal?Math.round((isAll?total:selGmv)/selUnitsTotal):0;
+    var aspCards='';
+    if(isAll||(!catSet.has('mob')&&!catSet.has('pad')&&!catSet.has('aiot')&&!catSet.has('he'))){
+      aspCards+=aspCard('Total ASP',totalASP,totalUnits.toLocaleString()+' units','#94a3b8','');
+    } else if(selUnitsTotal>0){
+      aspCards+=aspCard(t('mallCombAsp'),selAsp,selUnitsTotal.toLocaleString()+' u','#94a3b8','selected');
+    }
+    if(hasMob||hasHe){aspCards+=aspCard('Mobile ASP',mobASP,mob_q.toLocaleString()+' u','#f59e0b','H-end '+hePct+'%');}
+    if(hasMob||hasHe){aspCards+=aspCard('H-end ASP',heASP,he_q.toLocaleString()+' u','#a855f7','Rate '+hePct+'%');}
+    if(hasPad&&pad_q>0){aspCards+=aspCard('Tablet ASP',padASP,pad_q.toLocaleString()+' u','#22c55e','');}
+    if(hasAiot){aspCards+=aspCard('AIOT ASP',aiotASP,aiot_q.toLocaleString()+' u','#3b82f6','');}
+    var aspGrid='<div style="font-size:.62rem;font-weight:700;color:#475569;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">ASP SUMMARY — '+d.lbl+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'+aspCards+'</div>';
+    return'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'+pillBar+'<span style="font-size:.58rem;color:#475569;margin-left:4px">กดได้หลายหมวด</span></div>'
+      +'<div style="display:flex;gap:14px;align-items:stretch">'
+      +'<div style="flex:1;min-width:0;background:#111114;border:1px solid #27272a;border-radius:10px;padding:16px 14px">'+donutArea+'</div>'
+      +'<div style="flex:0 0 280px;background:#111114;border:1px solid #27272a;border-radius:10px;padding:16px 14px">'+aspGrid+'</div>'
+      +'</div>';
+  };
+
+
+  // ═══════════════════════════════════════════════════════
+  // 5. GMV TREND Jul / Aug / Sep
+  // ═══════════════════════════════════════════════════════
+  const MO_LBL=['Jul','Aug','Sep'];
+  const trendMax=Math.max(...TIERS.flatMap(t=>[A[t].julT,A[t].augT,A[t].sepT]));
+  const trendCols=TIERS.map(t=>{
+    const g=A[t],col=TIER_COLOR[t];
+    const vals=[g.julT,g.augT,g.sepT];
+    const moms=[null,
+      g.julT?((g.augT-g.julT)/g.julT*100):null,
+      g.augT?((g.sepT-g.augT)/g.augT*100):null
+    ];
+    const bars=vals.map((v,i)=>{
+      const h=Math.round(v/trendMax*72);
+      const m=moms[i];
+      const mStr=typeof m==='number'?(m>=0?`+${m.toFixed(1)}%`:`${m.toFixed(1)}%`):'';
+      const mCol=m!=null?(m>=0?'#22c55e':'#ef4444'):'transparent';
+      return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;width:38px">
+  <div style="font-size:.55rem;color:${mCol};font-weight:600;min-height:10px">${mStr}</div>
+  <div style="font-size:.6rem;color:#64748b;font-weight:600">${fM(v)}</div>
+  <div style="height:72px;display:flex;align-items:flex-end">
+    <div style="width:26px;height:${Math.max(4,h)}px;background:${col};border-radius:3px 3px 0 0;opacity:.82"></div>
+  </div>
+  <div style="font-size:.58rem;color:#475569">${MO_LBL[i]}</div>
+</div>`;
+    }).join('');
+    return`<div style="flex:1;padding:0 10px">
+  <div style="color:${col};font-size:.67rem;font-weight:700;margin-bottom:8px">${TIER_LABEL[t]} (${g.n} stores)</div>
+  <div style="display:flex;gap:4px;align-items:flex-end">${bars}</div>
+</div>`;
+  }).join('<div style="width:1px;background:#1e293b"></div>');
+
+  // ── Avg per store — same bar chart style as trendCols ────────
+  const avgMax=Math.max(...TIERS.flatMap(t=>[
+    A[t].n?Math.round(A[t].julT/A[t].n):0,
+    A[t].n?Math.round(A[t].augT/A[t].n):0,
+    A[t].n?Math.round(A[t].sepT/A[t].n):0
+  ]),1);
+  const avgPerStoreCard=TIERS.map(t=>{
+    const g=A[t],col=TIER_COLOR[t];
+    if(!g.n) return'';
+    const vals=[
+      Math.round(g.julT/g.n),
+      Math.round(g.augT/g.n),
+      Math.round(g.sepT/g.n)
+    ];
+    const moms=[null,
+      vals[0]?((vals[1]-vals[0])/vals[0]*100):null,
+      vals[1]?((vals[2]-vals[1])/vals[1]*100):null
+    ];
+    const bars=vals.map(function(v,i){
+      const h=Math.round(v/avgMax*72);
+      const m=moms[i];
+      const mStr=typeof m==='number'?(m>=0?'+'+m.toFixed(1)+'%':m.toFixed(1)+'%'):'';
+      const mCol=m!=null?(m>=0?'#22c55e':'#ef4444'):'transparent';
+      return'<div style="display:flex;flex-direction:column;align-items:center;gap:3px;width:38px">'
+        +'<div style="font-size:.55rem;color:'+mCol+';font-weight:600;min-height:10px">'+mStr+'</div>'
+        +'<div style="font-size:.6rem;color:#64748b;font-weight:600">'+fM(v)+'</div>'
+        +'<div style="height:72px;display:flex;align-items:flex-end">'
+        +'<div style="width:26px;height:'+Math.max(4,h)+'px;background:'+col+';border-radius:3px 3px 0 0;opacity:.82"></div>'
+        +'</div>'
+        +'<div style="font-size:.58rem;color:#475569">'+MO_LBL[i]+'</div>'
+        +'</div>';
+    }).join('');
+    return'<div style="flex:1;padding:0 10px">'
+      +'<div style="color:'+col+';font-size:.67rem;font-weight:700;margin-bottom:8px">'+TIER_LABEL[t]+' ('+g.n+' stores)</div>'
+      +'<div style="display:flex;gap:4px;align-items:flex-end">'+bars+'</div>'
+      +'</div>';
+  }).join('<div style="width:1px;background:#1e293b"></div>');
+
+  // ═══════════════════════════════════════════════════════
+  // 6. PARTNER × TIER MATRIX
+  // ═══════════════════════════════════════════════════════
+  const partners={};
+  Object.values(P).forEach(p=>{
+    if(!partners[p.ret])partners[p.ret]={ret:p.ret,by:{premium:[],midhigh:[],value:[],other:[]},all:[]};
+    partners[p.ret].by[p.tier].push(p);
+    partners[p.ret].all.push(p);
+  });
+  const pList=Object.values(partners).filter(p=>p.ret!=='?').sort((a,b)=>b.all.length-a.all.length);
+  const totalSepGmvAll=Object.values(P).reduce((t,s)=>t+s.sepEom,0);
+
+  const pRows=pList.map(pp=>{
+    const allN=pp.all.length;
+    const allAvg=allN?Math.round(pp.all.reduce((t,s)=>t+s.avgMo,0)/allN):0;
+    const allGmv=pp.all.reduce((t,s)=>t+s.sepEom,0);
+    const gmvShare=totalSepGmvAll?Math.round(allGmv/totalSepGmvAll*100):0;
+    const tierCells=TIERS.map(t=>{
+      const ps=pp.by[t],n=ps.length;
+      if(!n)return`<td style="text-align:center;padding:10px 6px;color:#1e293b">—</td>`;
+      const avg=n?Math.round(ps.reduce((a,s)=>a+s.avgMo,0)/n):0;
+      return`<td style="text-align:center;padding:10px 6px">
+  <div style="color:${TIER_COLOR[t]};font-weight:700;font-size:1.25rem;line-height:1">${n}</div>
+  <div style="color:#64748b;font-size:.65rem;margin-top:3px">${fM(avg)}/mo</div>
+</td>`;
+    }).join('');
+    const domBar=TIERS.map(t=>`<div style="flex:${Math.max(pp.by[t].length,0.05)};background:${TIER_COLOR[t]};height:100%;min-width:${pp.by[t].length?'3px':'0'};opacity:.75"></div>`).join('');
+    return`<tr class="mall-row-hover" style="border-bottom:1px solid #0f172a">
+  <td style="padding:9px 12px">
+    <div style="color:#cbd5e1;font-size:.85rem;font-weight:500">${pp.ret}</div>
+    <div style="height:4px;display:flex;border-radius:2px;overflow:hidden;background:#1e293b;margin-top:4px;width:80px">${domBar}</div>
+  </td>
+  ${tierCells}
+  <td style="text-align:right;padding:10px 12px">
+    <div style="color:#f1f5f9;font-weight:700;font-size:1.25rem;line-height:1">${allN}</div>
+    <div style="color:#64748b;font-size:.65rem;margin-top:3px">${fM(allAvg)}/mo</div>
+  </td>
+  <td style="padding:10px 12px;text-align:right">
+    <div style="color:#f1f5f9;font-size:1.1rem;font-weight:700;line-height:1">${gmvShare}%</div>
+    <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:4px">
+      <div style="width:${gmvShare}%;height:3px;background:#3b82f6;border-radius:2px;opacity:.75"></div>
+    </div>
+  </td>
+</tr>`;
+  }).join('');
+
+  // ═══════════════════════════════════════════════════════
+  // 7. MALL RANKINGS (vs tier average)
+  // ═══════════════════════════════════════════════════════
+  function getMallName(n){
+    const s=n.replace('Xiaomi Authorized Store ','').replace('Xiaomi Store ','');
+    const m=s.match(/^([\w\s'.\-]+?)(?:\s+(?:Bangkok|Chiang|Nontha|Pathumthani|Samut|Nakhon|Phuket|Chon|Rayong|Songkhla|Chiangmai|Khon|Ayutthaya|Buriram|Kanchanaburi|Udon|Ubon|Korat|Lampang|Krabi|Ratchaburi|Phitsanulok|Kamphaeng|Prachuap|Chumphon|Thailand|Pattaya|Rangsit|Bangna|Hatyai|Sriracha))/i);
+    return m?m[1].trim():s.split(' ').slice(0,4).join(' ');
+  }
+  const mallMap={};
+  Object.values(P).forEach(p=>{
+    const mn=getMallName(p.name);
+    if(!mallMap[mn])mallMap[mn]={mn,tier:p.tier,stores:[]};
+    mallMap[mn].stores.push(p);
+  });
+  const _mallAll=Object.values(mallMap).map(m=>{
+    const avgPerStore=Math.round(m.stores.reduce((t,s)=>t+s.avgMo,0)/m.stores.length);
+    return{...m,avgPerStore};
+  }).sort((a,b)=>b.avgPerStore-a.avgPerStore);
+  const _top10=_mallAll.slice(0,10);
+  const _bot10=_mallAll.slice(-10).reverse();
+  const _maxMall=_top10[0]?_top10[0].avgPerStore:1;
+  const mkMallRow=function(m,rankNum,isBottom){
+    const tierAvg=A[m.tier]?A[m.tier].avgMo:0;
+    const delta=tierAvg?Math.round((m.avgPerStore-tierAvg)/tierAvg*100):0;
+    const deltaCol=isBottom?(delta>=0?'#f59e0b':'#ef4444'):(delta>=0?'#22c55e':'#ef4444');
+    const barW=Math.round(m.avgPerStore/_maxMall*100);
+    return'<tr class="mall-row-hover" style="border-bottom:1px solid #0f172a">'
+      +'<td style="padding:6px 8px;color:#64748b;font-size:.65rem;text-align:center;width:24px">'+rankNum+'</td>'
+      +'<td style="padding:6px 8px">'
+        +'<div style="color:#cbd5e1;font-size:.75rem">'+m.mn+'</div>'
+        +'<div style="height:3px;background:#1e293b;border-radius:2px;margin-top:3px">'
+          +'<div style="width:'+barW+'%;height:3px;background:'+TIER_COLOR[m.tier]+';border-radius:2px;opacity:.8"></div>'
+        +'</div>'
+      +'</td>'
+      +'<td style="padding:6px 6px;text-align:center">'
+        +'<span style="color:'+TIER_COLOR[m.tier]+';font-size:.58rem;background:'+TIER_BG[m.tier]+';border:1px solid '+TIER_BORDER[m.tier]+';padding:2px 5px;border-radius:3px">'+TIER_LABEL[m.tier]+'</span>'
+      +'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#e2e8f0;font-size:.78rem;font-weight:700">'+fM(m.avgPerStore)+'</td>'
+      +'<td style="padding:6px 8px;text-align:right">'
+        +'<div style="font-size:.65rem;color:'+deltaCol+';font-weight:600">'+(delta>=0?'+':'')+delta+'%</div>'
+        +'<div style="font-size:.54rem;color:#64748b">vs tier avg</div>'
+      +'</td>'
+      +'</tr>';
+  };
+  const TH='<tr style="background:#1e293b">'
+    +'<th style="padding:8px 8px;color:#475569;font-size:.62rem;font-weight:700;text-align:center">#</th>'
+    +'<th style="padding:8px 8px;color:#94a3b8;font-size:.62rem;font-weight:700;text-align:left">MALL</th>'
+    +'<th style="padding:8px 6px;color:#94a3b8;font-size:.62rem;font-weight:700;text-align:center">TIER</th>'
+    +'<th style="padding:8px 8px;color:#94a3b8;font-size:.62rem;font-weight:700;text-align:right">AVG/MO</th>'
+    +'<th style="padding:8px 8px;color:#94a3b8;font-size:.62rem;font-weight:700;text-align:right">VS AVG</th>'
+    +'</tr>';
+  const topRows=_top10.map(function(m,i){return mkMallRow(m,'#'+(i+1),false);}).join('');
+  const botRows=_bot10.map(function(m,i){return mkMallRow(m,_mallAll.length-i,true);}).join('');
+
+  // ═══════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════
+  const SEC='<div style="font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">';
+  el.innerHTML=`<div style="padding:20px 0">
+
+<div style="margin-bottom:20px">
+  <div style="font-size:1rem;font-weight:700;color:#94a3b8">Shopping Mall Analysis</div>
+  <div style="font-size:.72rem;color:#64748b;margin-top:4px">Store performance by mall tier · YTD Jul–Sep · Sep projected to EOM (Day ${de}/${dm})</div>
+</div>
+
+${SEC}Tier Overview</div>
+<!-- Tier Reference Cards -->
+<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+  <div style="flex:1;min-width:160px;background:#18181b;border:1px solid #27272a;border-top:3px solid #3b82f6;border-radius:10px;padding:14px 16px">
+    <div style="color:#3b82f6;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px">Premium</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">
+      <span style="background:#1e293b;color:#cbd5e1;font-size:.62rem;font-weight:600;padding:3px 8px;border-radius:4px">Siam Paragon</span>
+    </div>
+  </div>
+  <div style="flex:3;min-width:240px;background:#18181b;border:1px solid #27272a;border-top:3px solid #22c55e;border-radius:10px;padding:14px 16px">
+    <div style="color:#22c55e;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px">Mid-High</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">
+      ${['Central','The Mall','Robinson','Dusit Central Park','Mega Bangna','One Bangkok','Happitat','Maya','Terminal 21','Fashion Island','Seacon','Sahathai Plaza','Future Park','Market Village','V Square'].map(m=>`<span style="background:#1e293b;color:#cbd5e1;font-size:.62rem;font-weight:600;padding:3px 8px;border-radius:4px">${m}</span>`).join('')}
+    </div>
+  </div>
+  <div style="flex:2;min-width:200px;background:#18181b;border:1px solid #27272a;border-top:3px solid #f59e0b;border-radius:10px;padding:14px 16px">
+    <div style="color:#f59e0b;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px">Value</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">
+      ${["Lotus's","Big C","Zeer Rangsit","Ayutthaya City Park","Taweekit","Fortune Town","IT Mall Fortune","Passione Rayong"].map(m=>`<span style="background:#1e293b;color:#cbd5e1;font-size:.62rem;font-weight:600;padding:3px 8px;border-radius:4px">${m}</span>`).join('')}
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">${kpiCards}</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+  ${concPanel}${benchPanel}
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+  ${mixPanel}${aspPanel}
+</div>
+
+${SEC}H-end Penetration Rate · H-end units ÷ Total Smartphone units sold</div>
+<div class="mall-panel" style="background:#111114;border:1px solid #27272a;border-radius:10px;padding:20px;margin-bottom:24px">
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="mallHeTierBtns">
+    <button onclick="_setMallHeTier('premium')" id="mallHeBtn_premium" style="padding:6px 14px;border-radius:6px;border:none;background:#1e40af22;color:#3b82f6;font-size:.72rem;font-weight:700;cursor:pointer;letter-spacing:.04em;outline:2px solid #3b82f6">PREMIUM</button>
+    <button onclick="_setMallHeTier('midhigh')" id="mallHeBtn_midhigh" style="padding:6px 14px;border-radius:6px;border:none;background:transparent;color:#22c55e;font-size:.72rem;font-weight:700;cursor:pointer;letter-spacing:.04em;outline:1px solid #22c55e44">MID-HIGH</button>
+    <button onclick="_setMallHeTier('value')" id="mallHeBtn_value" style="padding:6px 14px;border-radius:6px;border:none;background:transparent;color:#f59e0b;font-size:.72rem;font-weight:700;cursor:pointer;letter-spacing:.04em;outline:1px solid #f59e0b44">VALUE</button>
+  </div>
+  <div id="mallHeContent"><!-- filled on render --></div>
+</div>
+
+${SEC}Monthly GMV Trend by Tier · MoM growth rate shown</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
+  <div class="mall-panel" style="background:#111114;border:1px solid #27272a;border-radius:10px;padding:18px">
+    <div style="font-size:.6rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Monthly GMV Trend by Tier</div>
+    <div style="display:flex;gap:0">${trendCols}</div>
+  </div>
+  <div class="mall-panel" style="background:#111114;border:1px solid #27272a;border-radius:10px;padding:18px">
+    <div style="font-size:.6rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Average per Store by Mall Tier</div>
+    <div style="display:flex;gap:0">${avgPerStoreCard}</div>
+  </div>
+</div>
+
+${SEC}Partner Distribution by Mall Tier</div>
+<div style="background:#111114;border:1px solid #27272a;border-radius:10px;overflow:hidden;margin-bottom:24px">
+  <table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:#1e293b">
+      <th style="text-align:left;padding:10px 12px;color:#64748b;font-size:.66rem;font-weight:700">PARTNER</th>
+      ${TIERS.map(t=>`<th style="text-align:center;padding:10px 8px;color:${TIER_COLOR[t]};font-size:.66rem;font-weight:700">${TIER_LABEL[t]}<br><span style="color:#64748b;font-weight:400;font-size:.58rem">stores / avg/mo</span></th>`).join('')}
+      <th style="text-align:right;padding:10px 12px;color:#94a3b8;font-size:.66rem;font-weight:700">TOTAL</th>
+      <th style="text-align:right;padding:10px 12px;color:#64748b;font-size:.66rem;font-weight:700">GMV%</th>
+    </tr></thead>
+    <tbody>${pRows}</tbody>
+  </table>
+</div>
+
+${SEC}Mall Rankings · Avg GMV / Store / Month vs. Tier Average</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+  <div>
+    <div style="font-size:.64rem;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;padding:0 4px">▲ Top 10 Performers</div>
+    <div style="background:#111114;border:1px solid #27272a;border-radius:10px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>${TH}</thead>
+        <tbody>${topRows}</tbody>
+      </table>
+    </div>
+  </div>
+  <div>
+    <div style="font-size:.64rem;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;padding:0 4px">▼ Bottom 10 Underperformers</div>
+    <div style="background:#111114;border:1px solid #27272a;border-radius:10px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>${TH}</thead>
+        <tbody>${botRows}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div>`;
+  // Populate H-end interactive section with default tier
+  window._mallHeTier=window._mallHeTier||'premium';
+  if(!window._mallHeCatSet)window._mallHeCatSet=new Set(['all']);
+  window._setMallHeTier(window._mallHeTier);
+}
+
+
 function buildRiskView(){
   const sec=document.getElementById('riskSection');
   const stores=getStores();
