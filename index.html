@@ -515,6 +515,7 @@ tr:hover td{background:#162135}
       <div class="qbtn" onclick="selectPeriod('ytd')">YTD</div>
       <div class="qbtn" onclick="selectPeriod('q1')">Q1</div>
       <div class="qbtn" onclick="selectPeriod('q2')">Q2</div>
+      <div class="qbtn" onclick="selectPeriod('q3')">Q3</div>
     </div>
   </div>
   <div class="sb-sec">
@@ -639,11 +640,11 @@ tr:hover td{background:#162135}
     <div class="cm" style="margin-top:6px"><svg id="targetSvg" viewBox="0 0 840 110" preserveAspectRatio="xMidYMid meet"></svg></div>
   </div>
 
-  <div id="partnerPerfSection"></div>
-
   <!-- ZONE 4: Comparison & Alerts -->
   <div class="slbl"><span data-i18n="slRet"> Retailer Comparison</span> — <span id="retCmpLabel">—</span></div>
   <div class="ret-compare" id="retCmp"></div>
+
+  <div id="partnerPerfSection"></div>
 
   <div class="alert3" id="alertRow"></div>
 
@@ -855,7 +856,7 @@ function selectMonth(mn){
     populateSepWOW();
     selMonth='Sep'; selPeriod='month'; selView='monthly';
     midMonthDay=typeof _SEP!=='undefined'?_SEP.meta.de:0;
-    if(selMainView!=='analysis'){
+    if(selMainView!=='analysis'&&selMainView!=='mall'){
       selMainView='analysis';
       ['analysis','risk','daily','mall'].forEach(n=>document.getElementById('mnav-'+n)?.classList.toggle('active',n==='analysis'));
       document.getElementById('riskSection').style.display='none';
@@ -872,7 +873,7 @@ function selectMonth(mn){
     populateAugWOW();
     selMonth='Aug'; selPeriod='month'; selView='monthly';
     midMonthDay=typeof _AUG!=='undefined'?_AUG.meta.de:0;
-    if(selMainView!=='analysis'){
+    if(selMainView!=='analysis'&&selMainView!=='mall'){
       selMainView='analysis';
       ['analysis','risk','daily','mall'].forEach(n=>document.getElementById('mnav-'+n)?.classList.toggle('active',n==='analysis'));
       document.getElementById('riskSection').style.display='none';
@@ -889,8 +890,8 @@ function selectMonth(mn){
     populateJulyWOW();
     selMonth='Jul'; selPeriod='month'; selView='monthly';
     midMonthDay=typeof _JULY!=='undefined'?_JULY.meta.de:0; // forecast mode
-    // Switch to Analysis tab if needed
-    if(selMainView!=='analysis'){
+    // Switch to Analysis tab if needed (but stay on Mall if already there)
+    if(selMainView!=='analysis'&&selMainView!=='mall'){
       selMainView='analysis';
       ['analysis','risk','daily','mall'].forEach(n=>document.getElementById('mnav-'+n)?.classList.toggle('active',n==='analysis'));
       document.getElementById('riskSection').style.display='none';
@@ -957,9 +958,10 @@ function toggleStore(id){
 function clearAllStores(){selStoreIds=new Set();buildStoreList();renderAll();}
 function clearStoreFilter(){selStoreIds=new Set();document.getElementById('storeSearch').value='';buildStoreList();renderAll();}
 function periodInfo(){
-  if(selPeriod==='ytd') return{label:'YTD Jan.–Jun.',curr:null,prev:null};
+  if(selPeriod==='ytd') return{label:'YTD Jan.–Sep.',curr:null,prev:null};
   if(selPeriod==='q1') return{label:'Q1 Jan.–Mar.',curr:null,prev:null};
   if(selPeriod==='q2') return{label:'Q2 Apr.–Jun.',curr:null,prev:null};
+  if(selPeriod==='q3') return{label:'Q3 Jul.–Sep. (EOM forecast)',curr:null,prev:null};
   if(selPeriod==='wow') return{label:'Jun. 2026 (WoW)',curr:null,prev:null};
   const idx=MONTHS.indexOf(selMonth);
   const lbl_idx=D.months.indexOf(selMonth);
@@ -969,8 +971,8 @@ function periodInfo(){
 // ─── RETAILER COMPARISON CARDS ───
 function buildRetCmp(info){
   // Multi-month support for Q1/Q2/YTD
-  const mns=info.curr?[info.curr]:selPeriod==='q1'?['Jan','Feb','Mar']:selPeriod==='q2'?['Apr','May','Jun']:selPeriod==='ytd'?MONTHS.filter(m=>m!=='Jul'&&m!=='Aug'&&m!=='Sep'):['Jun'];
-  const prvMns=info.prev?[info.prev]:selPeriod==='q2'?['Jan','Feb','Mar']:null;
+  const mns=info.curr?[info.curr]:selPeriod==='q1'?['Jan','Feb','Mar']:selPeriod==='q2'?['Apr','May','Jun']:selPeriod==='q3'?['Jul','Aug','Sep']:selPeriod==='ytd'?MONTHS:['Jun'];
+  const prvMns=info.prev?[info.prev]:selPeriod==='q2'?['Jan','Feb','Mar']:selPeriod==='q3'?['Apr','May','Jun']:null;
   const mn=mns[mns.length-1], prv=info.prev;
   const periodSuffix=mns.length>1?` · Avg GMV/Store/Month`:'  · GMV per Store';
   document.getElementById('retCmpLabel').textContent=info.label+periodSuffix+' (fair comparison)';
@@ -987,8 +989,8 @@ function buildRetCmp(info){
     const psa=a[1].stores,psb=b[1].stores;
     return (b[1].gmv/psb)-(a[1].gmv/psa);
   });
-  const cuL=info.curr?MLBL[MONTHS.indexOf(info.curr)]:selPeriod==='q1'?'Q1':selPeriod==='q2'?'Q2':'YTD';
-  const pvL=prvMns?( prvMns.length>1?(selPeriod==='q2'?'Q1':'Prev'):MLBL[MONTHS.indexOf(prvMns[0])] ):(prv?MLBL[MONTHS.indexOf(prv)]:'');
+  const cuL=info.curr?MLBL[MONTHS.indexOf(info.curr)]:selPeriod==='q1'?'Q1':selPeriod==='q2'?'Q2':selPeriod==='q3'?'Q3':'YTD';
+  const pvL=prvMns?( prvMns.length>1?(selPeriod==='q2'?'Q1':selPeriod==='q3'?'Q2':'Prev'):MLBL[MONTHS.indexOf(prvMns[0])] ):(prv?MLBL[MONTHS.indexOf(prv)]:'');
   // Normalize by months for fair comparison across periods
   const mnCount=mns.length; // 1 for monthly, 3 for Q1/Q2, 6 for YTD
   const prvMnCount=prvMns?prvMns.length:1;
@@ -1014,8 +1016,8 @@ function buildRetCmp(info){
 
 // ─── KPI ───
 function buildKPIs(stores,info){
-  const mn=info.curr||(selPeriod==='q1'?'Mar':selPeriod==='q2'?'Jun':selPeriod==='ytd'?'Jun':'May');
-  const prv=info.prev||(selPeriod==='q2'?'Mar':selPeriod==='ytd'?'Mar':null);
+  const mn=info.curr||(selPeriod==='q1'?'Mar':selPeriod==='q2'?'Jun':selPeriod==='q3'?'Sep':selPeriod==='ytd'?'Sep':'May');
+  const prv=info.prev||(selPeriod==='q2'?'Mar':selPeriod==='q3'?'Jun':selPeriod==='ytd'?'Jun':null);
   const sg=(m)=>stores.reduce((a,s)=>a+(s.months[m]?.gmv||0),0);
   const sh=(m)=>stores.reduce((a,s)=>a+(s.months[m]?.highend||0),0);
   const shq=(m)=>stores.reduce((a,s)=>a+(s.months[m]?.highend_qty||0),0);
@@ -1376,7 +1378,7 @@ function renderTable(){
 
 // ─── YTD ───
 function buildYTD(stores){
-  const mns=selPeriod==='q1'?['Jan','Feb','Mar']:selPeriod==='q2'?['Apr','May','Jun']:MONTHS;
+  const mns=selPeriod==='q1'?['Jan','Feb','Mar']:selPeriod==='q2'?['Apr','May','Jun']:selPeriod==='q3'?['Jul','Aug','Sep']:MONTHS;
   const sg=mns.reduce((a,mn)=>a+stores.reduce((b,s)=>b+(s.months[mn]?.gmv||0),0),0);
   const sh=mns.reduce((a,mn)=>a+stores.reduce((b,s)=>b+(s.months[mn]?.highend||0),0),0);
   const sh_qty=mns.reduce((a,mn)=>a+stores.reduce((b,s)=>b+(s.months[mn]?.highend_qty||0),0),0);
@@ -1400,7 +1402,7 @@ function buildYTD(stores){
 
 // ─── HEADERS ───
 function updateHeaders(stores,info){
-  const mn=info.curr||(selPeriod==='q1'?'Mar':selPeriod==='q2'?'Jun':'Jun');
+  const mn=info.curr||(selPeriod==='q1'?'Mar':selPeriod==='q2'?'Jun':selPeriod==='q3'?'Sep':'Sep');
   // For live months use the _LIVE source store count (target>0); for historical use gmv>0
   const active=(mn==='Sep'&&typeof _SEP!=='undefined')?Object.values(_SEP.stores).filter(j=>j.target>0).length
     :(mn==='Aug'&&typeof _AUG!=='undefined')?Object.values(_AUG.stores).filter(j=>j.target>0).length
@@ -1762,13 +1764,13 @@ function buildAnalysisExtra(stores, info) {
   const contribution=prv?subCatKeys.map(c=>{const jul=sumF(c.key,mn),jun=sumF(c.key,prv),delta=jul-jun;return{...c,delta,pct:totalDelta!==0?delta/Math.abs(totalDelta)*100:0,jul,jun};}).filter(c=>c.jun>0||c.jul>0).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)):[];
   const cvTrend=MONTHS.map(m=>{const ss=stores.filter(s=>s.months[m]?.cv!=null&&s.months[m].cv>0&&s.months[m].cv<=50);return{m,avg:ss.length?+(ss.reduce((a,s)=>a+s.months[m].cv,0)/ss.length).toFixed(2):null,n:ss.length};}).filter(t=>t.avg!=null);
   const selMnIdx=cvTrend.findIndex(t=>t.m===mn);
-  const cvW=480,cvH=110,cvPL=36,cvPR=18,cvPT=14,cvPB=26,cvCW=cvW-cvPL-cvPR,cvCH=cvH-cvPT-cvPB;
+  const cvW=480,cvH=128,cvPL=36,cvPR=18,cvPT=14,cvPB=38,cvCW=cvW-cvPL-cvPR,cvCH=cvH-cvPT-cvPB;
   const cvMax=Math.max(...cvTrend.map(t=>t.avg))*1.3;
   const cvX=i=>cvPL+i*(cvCW/(Math.max(cvTrend.length-1,1)));
   const cvY=v=>cvPT+cvCH*(1-v/cvMax);
   let cvsvg='';
   [0,cvMax*.5,cvMax].forEach(v=>{const y=cvY(v);cvsvg+=`<line x1="${cvPL}" y1="${y.toFixed(1)}" x2="${cvW-cvPR}" y2="${y.toFixed(1)}" stroke="#222230" stroke-width="1"/>`;cvsvg+=`<text x="${(cvPL-3)}" y="${(y+4).toFixed(1)}" fill="#4b5563" font-size="6" text-anchor="end">${v.toFixed(1)}%</text>`;});
-  if(cvTrend.length>1){const pts=cvTrend.map((t,i)=>`${cvX(i).toFixed(1)},${cvY(t.avg).toFixed(1)}`).join(' ');cvsvg+=`<polyline points="${pts}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;cvTrend.forEach((t,i)=>{const cx=cvX(i),cy=cvY(t.avg);const isSel=i===selMnIdx;const col=isSel?'#3b82f6':'#64748b';cvsvg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${isSel?4:2.5}" fill="${col}" stroke="${isSel?'#1e3a5f':'#18181b'}" stroke-width="${isSel?2:1}"/>`;if(isSel||i===0||i===cvTrend.length-1)cvsvg+=`<text x="${cx.toFixed(1)}" y="${(cy-8).toFixed(1)}" fill="${col}" font-size="7.5" text-anchor="middle" font-weight="700">${t.avg.toFixed(1)}%</text>`;cvsvg+=`<text x="${cx.toFixed(1)}" y="${(cvPT+cvCH+13).toFixed(0)}" fill="${isSel?'#e4e4e7':'#4b5563'}" font-size="7" text-anchor="middle" font-weight="${isSel?700:400}">${MLBL[MONTHS.indexOf(t.m)]||t.m}</text>`;});}
+  if(cvTrend.length>1){const pts=cvTrend.map((t,i)=>`${cvX(i).toFixed(1)},${cvY(t.avg).toFixed(1)}`).join(' ');cvsvg+=`<polyline points="${pts}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;cvTrend.forEach((t,i)=>{const cx=cvX(i),cy=cvY(t.avg);const isSel=i===selMnIdx;const col=isSel?'#3b82f6':'#64748b';cvsvg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${isSel?4:2.5}" fill="${col}" stroke="${isSel?'#1e3a5f':'#18181b'}" stroke-width="${isSel?2:1}"/>`;if(isSel||i===0||i===cvTrend.length-1){const isFirst=(i===0);const isLast=(i===cvTrend.length-1&&!isFirst);const lx=isFirst?cx+2:isLast?cx-2:cx;const la=isFirst?'start':isLast?'end':'middle';const ly=(cy-8<cvPT+6)?cy+16:cy-8;cvsvg+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="${col}" font-size="7.5" text-anchor="${la}" font-weight="700">${t.avg.toFixed(1)}%</text>`;}cvsvg+=`<text x="${cx.toFixed(1)}" y="${(cvPT+cvCH+13).toFixed(0)}" fill="${isSel?'#e4e4e7':'#4b5563'}" font-size="7" text-anchor="middle" font-weight="${isSel?700:400}">${MLBL[MONTHS.indexOf(t.m)]||t.m}</text>`;const mom=i>0?((t.avg-cvTrend[i-1].avg)/cvTrend[i-1].avg*100):null;const momStr=mom!==null?(mom>=0?'+':'')+mom.toFixed(1)+'%':'';const momCol=mom===null?'transparent':mom>=0?'#22c55e':'#ef4444';cvsvg+=`<text x="${cx.toFixed(1)}" y="${(cvPT+cvCH+25).toFixed(0)}" fill="${momCol}" font-size="6" text-anchor="middle" font-weight="600">${momStr}</text>`;});}
   const cvHTML=`<svg viewBox="0 0 ${cvW} ${cvH}" width="100%" style="display:block">${cvsvg}</svg>`;
   el.innerHTML = `
     <!-- Needed Daily GMV (full-width prominent card) -->
@@ -2088,11 +2090,10 @@ function svgDonut(segs, centerLabel, centerVal){
 // ─── DONUT SECTION ───
 function buildDonutSection(stores,info){
   const mn=info.curr;
-  const mns=mn?[mn]:selPeriod==='q1'?['Jan','Feb','Mar']:selPeriod==='q2'?['Apr','May','Jun']:
-    selPeriod==='ytd'?MONTHS.filter(m=>m!=='Jul'&&m!=='Aug'&&m!=='Sep'):null;
+  const mns=mn?[mn]:selPeriod==='q1'?['Jan','Feb','Mar']:selPeriod==='q2'?['Apr','May','Jun']:selPeriod==='q3'?['Jul','Aug','Sep']:selPeriod==='ytd'?MONTHS:null;
   if(!mns||!mns.length){document.getElementById('donutSec').innerHTML='';return;}
   const sum=(key)=>mns.reduce((a,m)=>a+stores.reduce((b,s)=>b+(s.months[m]?.[key]||0),0),0);
-  const periodLabel=mn?MLBL[MONTHS.indexOf(mn)]:selPeriod==='q1'?'Q1':selPeriod==='q2'?'Q2':'YTD';
+  const periodLabel=mn?MLBL[MONTHS.indexOf(mn)]:selPeriod==='q1'?'Q1':selPeriod==='q2'?'Q2':selPeriod==='q3'?'Q3':'YTD';
   const singleStore=selStoreIds.size===1?stores.find(s=>s.id===[...selStoreIds][0]):null;
 
   const COLS={mobile:'#f59e0b',highend:'#f59e0b',pad:'#22c55e',band:'#3b82f6',
@@ -2926,6 +2927,11 @@ function updateViewToggle(){
   document.getElementById('vbtnWeekly').disabled=false;
   document.getElementById('viewHint').textContent='';
   if(!hw) selView='monthly';
+  // Highlight active quick-period button
+  document.querySelectorAll('.qbtn').forEach(function(btn){
+    const p=btn.getAttribute('onclick').match(/'(\w+)'/)?.[1];
+    btn.classList.toggle('active',p===selPeriod);
+  });
 }
 
 // ─── RENDER ALL ───────────────────────────────────────────────────────────
@@ -3271,6 +3277,11 @@ function buildMallView(){
   if(!el)return;
   const de=_SEP.meta.de,dm=_SEP.meta.dm;
 
+  // ── Determine which month's detail data to use for breakdowns ──
+  const _detailMn=selMonth||'Sep';
+  const detailSrc=(_detailMn==='Jul')?_JULY.stores:(_detailMn==='Aug')?_AUG.stores:_SEP.stores;
+  const detailLabel=(_detailMn==='Jul')?'Jul':(_detailMn==='Aug')?'Aug':'Sep (EOM)';
+
   // ── Standard dashboard colors only ──────────────────────
   // Premium: #3b82f6 (blue)  Mid-High: #22c55e (green)  Value: #f59e0b (amber)
   const TIER_LABEL={premium:'Premium',midhigh:'Mid-High',value:'Value',other:'Other'};
@@ -3302,35 +3313,40 @@ function buildMallView(){
   const P={};
   allSids.forEach(sid=>{
     const j=_JULY.stores[sid],a=_AUG.stores[sid],s=_SEP.stores[sid];
+    const d=detailSrc[sid]; // detail data for selected month
     const base=s||a||j;
+    if(!base)return;
     const ret=RMAP[sid]||base.retailer||'?';
     // ── Respect sidebar retailer filter ──
     if(typeof selRets!=='undefined'&&selRets.size>0&&!selRets.has(ret))return;
     const tier=getTier(base.name);
     const julG=j?j.cumul:0,augG=a?a.cumul:0;
     const sepEom=s?Math.round(s.cumul/de*dm):0;
+    const selGmv=_detailMn==='Jul'?julG:_detailMn==='Aug'?augG:sepEom;
+    const inSel=!!d; // store exists in selected month's data source
     P[sid]={
-      name:base.name,ret,tier,julG,augG,sepEom,
+      name:base.name,ret,tier,julG,augG,sepEom,selGmv,inSel,
       avgMo:Math.round((julG+augG+sepEom)/3),
-      mob:s?s.mob||0:0, mob_qty:s?s.mob_qty||0:0,
-      pad:s?s.pad||0:0, pad_qty:s?s.pad_qty||0:0,
-      aiot:s?s.aiot||0:0, aiot_qty:s?s.aiot_qty||0:0,
-      he_rev:s?s.highend_rev||s.highend||0:0,
-      he_qty:s?s.highend_qty||0:0,
+      mob:d?d.mob||0:0, mob_qty:d?d.mob_qty||0:0,
+      pad:d?d.pad||0:0, pad_qty:d?d.pad_qty||0:0,
+      aiot:d?d.aiot||0:0, aiot_qty:d?d.aiot_qty||0:0,
+      he_rev:d?d.highend_rev||d.highend||0:0,
+      he_qty:d?d.highend_qty||0:0,
       cumul_sep:s?s.cumul:0,
-      band:s?s.band||0:0,    band_q:s?s.band_qty||0:0,
-      watch:s?s.watch||0:0,  watch_q:s?s.watch_qty||0:0,
-      phone:s?s.headphone||0:0, phone_q:s?s.headphone_qty||0:0,
-      wg:s?s.white_goods||0:0,  wg_q:s?s.white_goods_qty||0:0,
-      tv:s?s.tv||0:0,        tv_q:s?s.tv_qty||0:0,
-      eco:s?s.ecosystem||0:0,eco_q:s?s.ecosystem_qty||0:0,
-      other:s?s.other||0:0,  other_q:s?s.other_qty||0:0
+      band:d?d.band||0:0,    band_q:d?d.band_qty||0:0,
+      watch:d?d.watch||0:0,  watch_q:d?d.watch_qty||0:0,
+      phone:d?d.headphone||0:0, phone_q:d?d.headphone_qty||0:0,
+      wg:d?d.white_goods||0:0,  wg_q:d?d.white_goods_qty||0:0,
+      tv:d?d.tv||0:0,        tv_q:d?d.tv_qty||0:0,
+      eco:d?d.ecosystem||0:0,eco_q:d?d.ecosystem_qty||0:0,
+      other:d?d.other||0:0,  other_q:d?d.other_qty||0:0
     };
   });
 
   const TIERS=['premium','midhigh','value'];
   const GRP={premium:[],midhigh:[],value:[],other:[]};
-  Object.values(P).forEach(p=>GRP[p.tier].push(p));
+  // Only include stores active in the selected month (inSel=true)
+  Object.values(P).forEach(p=>{if(p.inSel)GRP[p.tier].push(p);});
 
   function agg(ps){
     const n=ps.length;
@@ -3349,7 +3365,8 @@ function buildMallView(){
     const tv=ps.reduce((t,p)=>t+p.tv,0),        tv_q=ps.reduce((t,p)=>t+p.tv_q,0);
     const eco=ps.reduce((t,p)=>t+p.eco,0),      eco_q=ps.reduce((t,p)=>t+p.eco_q,0);
     const other=ps.reduce((t,p)=>t+p.other,0),  other_q=ps.reduce((t,p)=>t+p.other_q,0);
-    return{n,julT,augT,sepT,catSum,
+    const selT=_detailMn==='Jul'?julT:_detailMn==='Aug'?augT:sepT;
+    return{n,julT,augT,sepT,selT,catSum,
       avgMo:n?Math.round((julT+augT+sepT)/(3*n)):0,
       mob,mob_q,pad,pad_q,aiot,aiot_q,he_rev,he_q,
       band,band_q,watch,watch_q,phone,phone_q,wg,wg_q,tv,tv_q,eco,eco_q,other,other_q,
@@ -3366,6 +3383,7 @@ function buildMallView(){
   const fd=n=>new Intl.NumberFormat('en',{maximumFractionDigits:0}).format(n);
   const fM=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':String(Math.round(n));
   const totalSepGmv=TIERS.reduce((t,tr)=>t+A[tr].sepT,0);
+  const totalSelGmv=TIERS.reduce((t,tr)=>t+A[tr].selT,0);
   const totalStores=TIERS.reduce((t,tr)=>t+A[tr].n,0);
   const maxAvgMo=Math.max(...TIERS.map(t=>A[t].avgMo));
 
@@ -3374,7 +3392,7 @@ function buildMallView(){
   // ═══════════════════════════════════════════════════════
   const kpiCards=TIERS.map(t=>{
     const g=A[t],col=TIER_COLOR[t];
-    const gmvShare=totalSepGmv?Math.round(g.sepT/totalSepGmv*100):0;
+    const gmvShare=totalSelGmv?Math.round(g.selT/totalSelGmv*100):0;
     const storeShare=totalStores?Math.round(g.n/totalStores*100):0;
     return`<div class="mall-tier-card" style="background:#18181b;border:1px solid #27272a;border-radius:10px;padding:18px 20px;flex:1;min-width:200px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -3388,8 +3406,8 @@ function buildMallView(){
       <div style="color:#64748b;font-size:.6rem;margin-top:4px">${storeShare}% of total</div>
     </div>
     <div>
-      <div style="color:#64748b;font-size:.6rem;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Sep EOM GMV</div>
-      <div style="color:#f1f5f9;font-size:1.5rem;font-weight:700;line-height:1">${fM(g.sepT)}</div>
+      <div style="color:#64748b;font-size:.6rem;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">${detailLabel} GMV</div>
+      <div style="color:#f1f5f9;font-size:1.5rem;font-weight:700;line-height:1">${fM(g.selT)}</div>
       <div style="color:#64748b;font-size:.6rem;margin-top:4px">฿ THB</div>
     </div>
     <div>
@@ -3419,13 +3437,13 @@ function buildMallView(){
 
   const concPanel=`<div class="mall-panel" style="background:#111114;border:1px solid #27272a;border-radius:10px;padding:18px">
   <div style="font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Revenue & Store Concentration</div>
-  ${propBar(TIERS.map(t=>A[t].sepT),TIERS.map(t=>TIER_LABEL[t]),totalSepGmv,'Sep EOM GMV by Tier')}
+  ${propBar(TIERS.map(t=>A[t].selT),TIERS.map(t=>TIER_LABEL[t]),totalSelGmv,detailLabel+' GMV by Tier')}
   ${propBar(TIERS.map(t=>A[t].n),TIERS.map(t=>TIER_LABEL[t]),totalStores,'Store Count by Tier')}
   <div style="margin-top:14px;padding-top:12px;border-top:1px solid #1e293b;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
     ${TIERS.map(t=>`<div style="text-align:center">
   <div style="color:${TIER_COLOR[t]};font-size:.62rem;font-weight:600">${TIER_LABEL[t]}</div>
-  <div style="color:#94a3b8;font-size:.7rem;font-weight:700;margin-top:2px">฿${fM(A[t].n?Math.round(A[t].sepT/A[t].n):0)}</div>
-  <div style="color:#64748b;font-size:.58rem">per store (Sep)</div>
+  <div style="color:#94a3b8;font-size:.7rem;font-weight:700;margin-top:2px">฿${fM(A[t].n?Math.round(A[t].selT/A[t].n):0)}</div>
+  <div style="color:#64748b;font-size:.58rem">per store (${detailLabel})</div>
 </div>`).join('')}
   </div>
 </div>`;
@@ -3505,7 +3523,7 @@ function buildMallView(){
   const _heD={};
   TIERS.forEach(function(t){
     const g=A[t];
-    _heD[t]={n:g.n,sepT:g.sepT,
+    _heD[t]={n:g.n,selT:g.selT,
       mob:g.mob||0,mob_q:g.mob_q||0,
       pad:g.pad||0,pad_q:g.pad_q||0,
       aiot:g.aiot||0,aiot_q:g.aiot_q||0,
@@ -3556,7 +3574,7 @@ function buildMallView(){
     if(!d.n)return'<div style="color:#64748b;padding:20px">No data for this tier</div>';
     const mob=d.mob,mob_q=d.mob_q,pad=d.pad,pad_q=d.pad_q,aiot=d.aiot,aiot_q=d.aiot_q;
     const he=d.he_rev,he_q=d.he_q,std=mob-he;
-    const total=d.sepT;
+    const total=d.selT;
     const pct=function(v){return total?Math.round(v/total*100):0;};
     const mobPct=pct(mob),padPct=pct(pad),aiotPct=pct(aiot),hePct=mob_q?Math.round(he_q/mob_q*100):0;
     const totalUnits=mob_q+pad_q+aiot_q;
@@ -3753,23 +3771,23 @@ function buildMallView(){
   // 6. PARTNER × TIER MATRIX
   // ═══════════════════════════════════════════════════════
   const partners={};
-  Object.values(P).forEach(p=>{
+  Object.values(P).filter(p=>p.inSel).forEach(p=>{
     if(!partners[p.ret])partners[p.ret]={ret:p.ret,by:{premium:[],midhigh:[],value:[],other:[]},all:[]};
     partners[p.ret].by[p.tier].push(p);
     partners[p.ret].all.push(p);
   });
   const pList=Object.values(partners).filter(p=>p.ret!=='?').sort((a,b)=>b.all.length-a.all.length);
-  const totalSepGmvAll=Object.values(P).reduce((t,s)=>t+s.sepEom,0);
+  const totalSelGmvAll=Object.values(P).reduce((t,s)=>t+s.selGmv,0);
 
   const pRows=pList.map(pp=>{
     const allN=pp.all.length;
-    const allAvg=allN?Math.round(pp.all.reduce((t,s)=>t+s.avgMo,0)/allN):0;
-    const allGmv=pp.all.reduce((t,s)=>t+s.sepEom,0);
-    const gmvShare=totalSepGmvAll?Math.round(allGmv/totalSepGmvAll*100):0;
+    const allGmv=pp.all.reduce((t,s)=>t+s.selGmv,0);
+    const allAvg=allN?Math.round(allGmv/allN):0;
+    const gmvShare=totalSelGmvAll?Math.round(allGmv/totalSelGmvAll*100):0;
     const tierCells=TIERS.map(t=>{
       const ps=pp.by[t],n=ps.length;
       if(!n)return`<td style="text-align:center;padding:10px 6px;color:#1e293b">—</td>`;
-      const avg=n?Math.round(ps.reduce((a,s)=>a+s.avgMo,0)/n):0;
+      const avg=n?Math.round(ps.reduce((a,s)=>a+s.selGmv,0)/n):0;
       return`<td style="text-align:center;padding:10px 6px">
   <div style="color:${TIER_COLOR[t]};font-weight:700;font-size:1.25rem;line-height:1">${n}</div>
   <div style="color:#64748b;font-size:.65rem;margin-top:3px">${fM(avg)}/mo</div>
@@ -3804,20 +3822,20 @@ function buildMallView(){
     return m?m[1].trim():s.split(' ').slice(0,4).join(' ');
   }
   const mallMap={};
-  Object.values(P).forEach(p=>{
+  Object.values(P).filter(p=>p.inSel).forEach(p=>{
     const mn=getMallName(p.name);
     if(!mallMap[mn])mallMap[mn]={mn,tier:p.tier,stores:[]};
     mallMap[mn].stores.push(p);
   });
   const _mallAll=Object.values(mallMap).map(m=>{
-    const avgPerStore=Math.round(m.stores.reduce((t,s)=>t+s.avgMo,0)/m.stores.length);
+    const avgPerStore=Math.round(m.stores.reduce((t,s)=>t+s.selGmv,0)/m.stores.length);
     return{...m,avgPerStore};
   }).sort((a,b)=>b.avgPerStore-a.avgPerStore);
   const _top10=_mallAll.slice(0,10);
   const _bot10=_mallAll.slice(-10).reverse();
   const _maxMall=_top10[0]?_top10[0].avgPerStore:1;
   const mkMallRow=function(m,rankNum,isBottom){
-    const tierAvg=A[m.tier]?A[m.tier].avgMo:0;
+    const tierAvg=A[m.tier]&&A[m.tier].n?Math.round(A[m.tier].selT/A[m.tier].n):0;
     const delta=tierAvg?Math.round((m.avgPerStore-tierAvg)/tierAvg*100):0;
     const deltaCol=isBottom?(delta>=0?'#f59e0b':'#ef4444'):(delta>=0?'#22c55e':'#ef4444');
     const barW=Math.round(m.avgPerStore/_maxMall*100);
@@ -3843,7 +3861,7 @@ function buildMallView(){
     +'<th style="padding:8px 8px;color:#475569;font-size:.62rem;font-weight:700;text-align:center">#</th>'
     +'<th style="padding:8px 8px;color:#94a3b8;font-size:.62rem;font-weight:700;text-align:left">MALL</th>'
     +'<th style="padding:8px 6px;color:#94a3b8;font-size:.62rem;font-weight:700;text-align:center">TIER</th>'
-    +'<th style="padding:8px 8px;color:#94a3b8;font-size:.62rem;font-weight:700;text-align:right">AVG/MO</th>'
+    +'<th style="padding:8px 8px;color:#94a3b8;font-size:.62rem;font-weight:700;text-align:right">'+detailLabel+'</th>'
     +'<th style="padding:8px 8px;color:#94a3b8;font-size:.62rem;font-weight:700;text-align:right">VS AVG</th>'
     +'</tr>';
   const topRows=_top10.map(function(m,i){return mkMallRow(m,'#'+(i+1),false);}).join('');
@@ -3857,7 +3875,7 @@ function buildMallView(){
 
 <div style="margin-bottom:20px">
   <div style="font-size:1rem;font-weight:700;color:#94a3b8">Shopping Mall Analysis</div>
-  <div style="font-size:.72rem;color:#64748b;margin-top:4px">Store performance by mall tier · YTD Jul–Sep · Sep projected to EOM (Day ${de}/${dm})</div>
+  <div style="font-size:.72rem;color:#64748b;margin-top:4px">Store performance by mall tier · Breakdown: <span style="color:#94a3b8;font-weight:600">${detailLabel}</span> · GMV trend: Jul–Aug–Sep (EOM Day ${de}/${dm})</div>
 </div>
 
 ${SEC}Tier Overview</div>
@@ -3920,7 +3938,7 @@ ${SEC}Partner Distribution by Mall Tier</div>
   <table style="width:100%;border-collapse:collapse">
     <thead><tr style="background:#1e293b">
       <th style="text-align:left;padding:10px 12px;color:#64748b;font-size:.66rem;font-weight:700">PARTNER</th>
-      ${TIERS.map(t=>`<th style="text-align:center;padding:10px 8px;color:${TIER_COLOR[t]};font-size:.66rem;font-weight:700">${TIER_LABEL[t]}<br><span style="color:#64748b;font-weight:400;font-size:.58rem">stores / avg/mo</span></th>`).join('')}
+      ${TIERS.map(t=>`<th style="text-align:center;padding:10px 8px;color:${TIER_COLOR[t]};font-size:.66rem;font-weight:700">${TIER_LABEL[t]}<br><span style="color:#64748b;font-weight:400;font-size:.58rem">stores / ${detailLabel} avg</span></th>`).join('')}
       <th style="text-align:right;padding:10px 12px;color:#94a3b8;font-size:.66rem;font-weight:700">TOTAL</th>
       <th style="text-align:right;padding:10px 12px;color:#64748b;font-size:.66rem;font-weight:700">GMV%</th>
     </tr></thead>
@@ -3928,7 +3946,7 @@ ${SEC}Partner Distribution by Mall Tier</div>
   </table>
 </div>
 
-${SEC}Mall Rankings · Avg GMV / Store / Month vs. Tier Average</div>
+${SEC}Mall Rankings · ${detailLabel} GMV / Store vs. Tier Average</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
   <div>
     <div style="font-size:.64rem;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;padding:0 4px">▲ Top 10 Performers</div>
@@ -4461,7 +4479,7 @@ function buildRiskView(){
     return{m,avg:ss.length?+(ss.reduce((a,s)=>a+s.months[m].cv,0)/ss.length).toFixed(2):null,n:ss.length};
   }).filter(t=>t.avg!=null);
   const selMnIdx=cvTrend.findIndex(t=>t.m===mn);
-  const cvW=480,cvH=110,cvPL=36,cvPR=18,cvPT=14,cvPB=26,cvCW=cvW-cvPL-cvPR,cvCH=cvH-cvPT-cvPB;
+  const cvW=480,cvH=128,cvPL=36,cvPR=18,cvPT=14,cvPB=38,cvCW=cvW-cvPL-cvPR,cvCH=cvH-cvPT-cvPB;
   const cvMax=Math.max(...cvTrend.map(t=>t.avg))*1.3;
   const cvX=i=>cvPL+i*(cvCW/(Math.max(cvTrend.length-1,1)));
   const cvY=v=>cvPT+cvCH*(1-v/cvMax);
@@ -4482,6 +4500,10 @@ function buildRiskView(){
       cvsvg+=`<text x="${cx.toFixed(1)}" y="${lblY.toFixed(1)}" fill="#3b82f6" font-size="7.5" font-weight="700" text-anchor="middle">${t.avg}%</text>`;
     }
     cvsvg+=`<text x="${cx.toFixed(1)}" y="${(cvPT+cvCH+12).toFixed(1)}" fill="${isSel?'#94a3b8':'#4b5563'}" font-size="6" text-anchor="middle" font-weight="${isSel?700:400}">${MLBL[MONTHS.indexOf(t.m)]||t.m}</text>`;
+    const mom=i>0?((t.avg-cvTrend[i-1].avg)/cvTrend[i-1].avg*100):null;
+    const momStr=mom!==null?(mom>=0?'+':'')+mom.toFixed(1)+'%':'';
+    const momCol=mom===null?'transparent':mom>=0?'#22c55e':'#ef4444';
+    cvsvg+=`<text x="${cx.toFixed(1)}" y="${(cvPT+cvCH+24).toFixed(1)}" fill="${momCol}" font-size="6" text-anchor="middle" font-weight="600">${momStr}</text>`;
   });
   const cvHTML=`<svg viewBox="0 0 ${cvW} ${cvH}" width="100%" style="display:block">${cvsvg}</svg>`;
 
