@@ -784,7 +784,8 @@ function buildRetList(){
   // For live months (Jul/Aug/Sep), use live data source
   const _liveSrc=(mn==='Jul'&&typeof _JULY!=='undefined')?_JULY
     :(mn==='Aug'&&typeof _AUG!=='undefined')?_AUG
-    :(mn==='Sep'&&typeof _SEP!=='undefined')?_SEP:null;
+    :(mn==='Sep'&&typeof _SEP!=='undefined')?_SEP
+    :(mn==='Oct'&&typeof _OCT!=='undefined')?_OCT:null;
   if(_liveSrc){
     Object.entries(_liveSrc.stores).forEach(([id,j])=>{
       if(!j||!(j.target>0||j.cumul>0)) return;
