@@ -489,6 +489,71 @@ tr:hover td{background:#162135}
 .kmo-badge-insight{background:#1e3a5f;color:#60a5fa;font-size:.62rem;padding:4px 10px;border-radius:5px;border:1px solid #1e40af44;display:inline-block;margin-top:6px}
 .kmo-note{font-size:.62rem;color:#475569;margin-top:8px}
 
+/* ── Visual Polish v3 — rounded cards, cleaner palette, pill badges ── */
+:root{
+  --bg0:#111111;
+  --bg2:#1C1C1E;
+  --bg3:#2C2C2E;
+  --card:#181818;
+  --border:#2A2A2C;
+  --t1:#F5F5F7;
+  --t2:#DDDDE5;
+  --t3:#98989F;
+  --t4:#636366;
+  --t5:#3A3A3C;
+}
+/* Rounded cards everywhere */
+.ach-card,.kcard,.cpanel,.tpanel,.donut-section,.pace-bar,
+.rc-card,.yc,.peribar,.abox,.hero-banner,.hero-banner2,
+.hero-subs,.hero-subs-empty,.hero-sub{border-radius:14px!important}
+/* Slightly thinner top accent */
+.ach-card::before{height:2px!important;border-radius:14px 14px 0 0!important}
+/* Sidebar month buttons */
+.mbtn{border-radius:10px!important}
+.mbtn.active{background:#0c1628!important;border-color:#3b82f680!important}
+/* Period & quarter buttons */
+.qbtn,.rabtn{border-radius:8px!important}
+/* Pill-shaped status badges */
+.mbadge{border-radius:20px!important;padding:2px 9px!important;font-size:.59rem!important}
+.mbadge.g{background:#052e1680!color:#4ade80!important;border-color:#22c55e40!important}
+.mbadge.a{background:#2d1d0080!important;color:#fbbf24!important;border-color:#f59e0b40!important}
+.mbadge.r{background:#2d0a0a80!important;color:#f87171!important;border-color:#ef444440!important}
+/* Pace tags */
+.pace-tag{border-radius:20px!important;padding:2px 9px!important}
+/* Header badges */
+.hbdg{border-radius:8px!important}
+.pbdg{border-radius:10px!important}
+/* Period badge (pbdg) */
+.ibdg{border-radius:8px!important}
+/* Store items */
+.store-item{border-radius:8px!important}
+.store-item.active{border-left:3px solid var(--blu)!important;border-radius:8px!important}
+/* Ret-item */
+.ret-item{border-radius:8px!important}
+/* Table — zebra bg softer */
+tr:hover td{background:#1a2030!important}
+/* Period bar */
+.pb-arr{border-radius:6px!important}
+/* kv boxes */
+.kv{border-radius:8px!important}
+/* donut-grid cards */
+.donut-grid>div{border-radius:12px!important}
+/* chart legend line */
+.cl-ln{border-radius:3px!important}
+/* Retail tag */
+.ret-tag{border-radius:5px!important}
+/* Mall tier headers */
+.h-tag{border-radius:5px!important}
+/* Hero sub-cards polish */
+.hero-sub{border-radius:12px!important;border:1px solid #2A2A2C!important}
+/* Mall card accent bars */
+.rc-card{border-radius:14px!important;border-left-width:3px!important}
+/* Scrollbar cosmetics */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#3A3A3C;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#4A4A4E}
+
 </style>
 </head>
 <body>
@@ -2126,119 +2191,62 @@ return `<div class="hero-sub" style="cursor:pointer" onclick="expandCard(this)">
 }
 
 
-// ─── SVG DONUT HELPER (with leader lines + arrowheads) ───
+// ─── SVG DONUT HELPER (clean ring + right-side dot legend) ───
 function svgDonut(segs, centerLabel, centerVal){
-  const W=380,H=278,cx=190,cy=139,R=70,ri=44;
-  const fx=v=>v.toFixed(1),fy=v=>v.toFixed(1);
+  const W=300, H=180, dcx=72, dcy=90, R=52, SW=22;
+  const C=2*Math.PI*R; // circumference ≈ 326.7
   const total=segs.reduce((a,s)=>a+(s.v||0),0);
   if(!total) return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="auto"></svg>`;
 
-  let arcs='',leaders='',texts='';
-  let angle=-Math.PI/2;
-
-  // Single-segment fix: SVG arc from point to same point = degenerate path
-  // Draw full circle using two concentric circles instead (Rule 24)
   const nonZero=segs.filter(s=>s.v>0);
+
+  // background track
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="auto">`;
+  svg+=`<circle cx="${dcx}" cy="${dcy}" r="${R}" fill="none" stroke="#2C2C2E" stroke-width="${SW}"/>`;
+
+  // colored segments using stroke-dasharray, rotated so first segment starts at top
+  const GAP=nonZero.length>1?2.5:0;
+  let cumul=0;
+  svg+=`<g transform="rotate(-90,${dcx},${dcy})">`;
   if(nonZero.length===1){
-    const s=nonZero[0];
-    arcs=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="${s.col}" opacity=".9"/>
-      <circle cx="${cx}" cy="${cy}" r="${ri}" fill="var(--bg0)"/>`;
-    const tx=cx+R+18+44;
-    leaders=`<line x1="${(cx+R).toFixed(1)}" y1="${cy}" x2="${(cx+R+18).toFixed(1)}" y2="${cy}" stroke="${s.col}" stroke-width="1.1" opacity=".8"/>
-      <line x1="${(cx+R+18).toFixed(1)}" y1="${cy}" x2="${tx.toFixed(1)}" y2="${cy}" stroke="${s.col}" stroke-width="1.1" opacity=".8"/>`;
-    texts=`<text x="${(tx+3).toFixed(1)}" y="${(cy-3).toFixed(1)}" text-anchor="start" fill="var(--t2)" font-size="8.5" font-weight="500" font-family="inherit">${s.lbl}</text>
-      <text x="${(tx+3).toFixed(1)}" y="${(cy+7).toFixed(1)}" text-anchor="start" fill="${s.col}" font-size="8" font-weight="700" font-family="inherit">100.0%</text>`;
-    const centerX=cx.toFixed(1),centerY=cy.toFixed(1);
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="auto">${arcs}${leaders}${texts}
-      <text x="${centerX}" y="${(cy-5).toFixed(1)}" text-anchor="middle" fill="var(--t3)" font-size="7.5" font-family="inherit">${centerLabel}</text>
-      <text x="${centerX}" y="${(cy+7).toFixed(1)}" text-anchor="middle" fill="var(--t1)" font-size="11" font-weight="700" font-family="inherit">${centerVal}</text>
-    </svg>`;
-  }
-
-  // ── Pass 1: collect arc geometry + initial label positions ──
-  const RADIAL=14, HORIZ=44, LROW=14; // LROW = row height per label (name+pct)
-  const labelInfos=[]; // {mid,isR,initY,col,lbl,pct,sub,arrTip_x,arrTip_y,p1x,p1y,p2x,p2y}
-
-  segs.forEach(s=>{
-    if(!s.v) return;
-    const sw=s.v/total*2*Math.PI;
-    const mid=angle+sw/2;
-    const pct=s.v/total*100;
-
-    // ── arc path ──
-    const x1=cx+R*Math.cos(angle),y1=cy+R*Math.sin(angle);
-    const x2=cx+R*Math.cos(angle+sw),y2=cy+R*Math.sin(angle+sw);
-    const ix1=cx+ri*Math.cos(angle+sw),iy1=cy+ri*Math.sin(angle+sw);
-    const ix2=cx+ri*Math.cos(angle),iy2=cy+ri*Math.sin(angle);
-    const lg=sw>Math.PI?1:0;
-    arcs+=`<path d="M${fx(x1)},${fy(y1)} A${R},${R} 0 ${lg} 1 ${fx(x2)},${fy(y2)} L${fx(ix1)},${fy(iy1)} A${ri},${ri} 0 ${lg} 0 ${fx(ix2)},${fy(iy2)}Z" fill="${s.col}" opacity=".9" stroke="var(--bg0)" stroke-width="1.4"/>`;
-
-    if(pct>=3){
-      const isR=Math.cos(mid)>=0;
-      const ey=cy+(R+RADIAL)*Math.sin(mid);
-      const arrTip_x=cx+(R+1)*Math.cos(mid), arrTip_y=cy+(R+1)*Math.sin(mid);
-      const perpA=mid+Math.PI/2, sz=3.5;
-      labelInfos.push({
-        mid,isR,initY:ey,col:s.col,
-        lbl:s.lbl.length>14?s.lbl.slice(0,13)+'…':s.lbl,
-        pct:pct.toFixed(1),sub:s.sub||'',
-        arrTip_x,arrTip_y,
-        p1x:cx+(R-5)*Math.cos(mid)+sz*Math.cos(perpA), p1y:cy+(R-5)*Math.sin(mid)+sz*Math.sin(perpA),
-        p2x:cx+(R-5)*Math.cos(mid)-sz*Math.cos(perpA), p2y:cy+(R-5)*Math.sin(mid)-sz*Math.sin(perpA)
-      });
-    }
-    angle+=sw;
-  });
-
-  // ── Pass 2: collision avoidance — separate left/right, resolve overlaps ──
-  const MIN_GAP=LROW+4; // min vertical distance between two label baselines
-  ['R','L'].forEach(side=>{
-    const group=labelInfos.filter(l=>(side==='R')?l.isR:!l.isR).sort((a,b)=>a.initY-b.initY);
-    // assign finalY starting from initY, push down if overlapping previous
-    let prev=-9999;
-    group.forEach(l=>{
-      l.finalY=Math.max(l.initY, prev+MIN_GAP);
-      prev=l.finalY;
+    // full ring for single segment
+    svg+=`<circle cx="${dcx}" cy="${dcy}" r="${R}" fill="none" stroke="${nonZero[0].col}" stroke-width="${SW}"/>`;
+  } else {
+    nonZero.forEach(s=>{
+      const segLen=(s.v/total)*C;
+      const dash=Math.max(0,segLen-GAP);
+      svg+=`<circle cx="${dcx}" cy="${dcy}" r="${R}" fill="none" stroke="${s.col}" stroke-width="${SW}" stroke-dasharray="${dash.toFixed(1)} ${(C-dash).toFixed(1)}" stroke-dashoffset="${(-cumul).toFixed(1)}" stroke-linecap="butt"/>`;
+      cumul+=segLen;
     });
-    // if group exceeds bottom (H-10), pull everything up proportionally
-    if(group.length){
-      const last=group[group.length-1];
-      const over=last.finalY-(H-16);
-      if(over>0){
-        group.forEach((l,i)=>{ l.finalY-=over*(i+1)/group.length; });
-        // second pass to fix any new overlaps after upward shift
-        prev=-9999;
-        group.forEach(l=>{ l.finalY=Math.max(l.finalY,prev+MIN_GAP); prev=l.finalY; });
-      }
+  }
+  svg+=`</g>`;
+
+  // center text
+  svg+=`<text x="${dcx}" y="${dcy-7}" text-anchor="middle" fill="var(--t4)" font-size="8" font-weight="500" font-family="inherit">${centerLabel}</text>`;
+  svg+=`<text x="${dcx}" y="${dcy+9}" text-anchor="middle" fill="var(--t1)" font-size="12" font-weight="700" font-family="inherit">${centerVal}</text>`;
+
+  // right-side legend: colored dot + label name + bold %
+  const lx0=150, lxEnd=W-6;
+  // calculate row height based on number of items + sub-labels
+  const totalRows=nonZero.reduce((a,s)=>a+(s.sub?2:1),0);
+  const rowH=Math.min(22, Math.max(14, Math.floor((H-24)/Math.max(totalRows,1))));
+  let ly=Math.max(16, Math.round(dcy - (totalRows*(rowH))/2 + rowH*0.5));
+
+  nonZero.forEach(s=>{
+    const pct=(s.v/total*100).toFixed(1);
+    const lbl=s.lbl.length>13?s.lbl.slice(0,12)+'…':s.lbl;
+    svg+=`<circle cx="${lx0}" cy="${ly}" r="4.5" fill="${s.col}"/>`;
+    svg+=`<text x="${lx0+11}" y="${ly+4}" fill="var(--t2)" font-size="9.5" font-family="inherit">${lbl}</text>`;
+    svg+=`<text x="${lxEnd}" y="${ly+4}" text-anchor="end" fill="${s.col}" font-size="9.5" font-weight="700" font-family="inherit">${pct}%</text>`;
+    ly+=rowH;
+    if(s.sub){
+      svg+=`<text x="${lx0+11}" y="${ly}" fill="var(--t4)" font-size="8" font-family="inherit">${s.sub}</text>`;
+      ly+=rowH-4;
     }
   });
 
-  // ── Pass 3: draw leaders + text at finalY ──
-  labelInfos.forEach(l=>{
-    const ex=cx+(R+RADIAL)*Math.cos(l.mid);
-    const ey_orig=cy+(R+RADIAL)*Math.sin(l.mid);
-    const footX=ex+(l.isR?HORIZ:-HORIZ);
-    const footY=l.finalY;
-    const anchor=l.isR?'start':'end';
-    const tx=footX+(l.isR?3:-3);
-
-    leaders+=`<polygon points="${fx(l.p1x)},${fy(l.p1y)} ${fx(l.p2x)},${fy(l.p2y)} ${fx(l.arrTip_x)},${fy(l.arrTip_y)}" fill="${l.col}"/>`;
-    leaders+=`<line x1="${fx(l.arrTip_x)}" y1="${fy(l.arrTip_y)}" x2="${fx(ex)}" y2="${fy(ey_orig)}" stroke="${l.col}" stroke-width="1.1" opacity=".8"/>`;
-    leaders+=`<line x1="${fx(ex)}" y1="${fy(ey_orig)}" x2="${fx(footX)}" y2="${fy(footY)}" stroke="${l.col}" stroke-width="1.1" opacity=".6"/>`;
-
-    texts+=`<text x="${fx(tx)}" y="${fy(footY-3)}" text-anchor="${anchor}" fill="var(--t2)" font-size="8.5" font-weight="500" font-family="inherit">${l.lbl}</text>`;
-    texts+=`<text x="${fx(tx)}" y="${fy(footY+7)}" text-anchor="${anchor}" fill="${l.col}" font-size="8" font-weight="700" font-family="inherit">${l.pct}%</text>`;
-    if(l.sub){
-      texts+=`<text x="${fx(tx)}" y="${fy(footY+18)}" text-anchor="${anchor}" fill="var(--t4)" font-size="7" font-family="inherit">${l.sub}</text>`;
-    }
-  });
-
-  // center label
-  const center=`
-    <text x="${cx}" y="${cy-6}" text-anchor="middle" fill="var(--t4)" font-size="8" font-weight="500" font-family="inherit">${centerLabel}</text>
-    <text x="${cx}" y="${cy+8}" text-anchor="middle" fill="var(--t1)" font-size="10.5" font-weight="700" font-family="inherit">${centerVal}</text>`;
-
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" style="overflow:visible">${arcs}${leaders}${texts}${center}</svg>`;
+  svg+=`</svg>`;
+  return svg;
 }
 
 // ─── DONUT SECTION ───
@@ -2304,8 +2312,8 @@ function buildDonutSection(stores,info){
 
   const catData={
     mob:{lbl:'Smartphone',col:'#f59e0b',gmv:mobile_gmv,qty:mobile_qty,
-      segs:[{lbl:'Standard',v:std_gmv,col:'#f59e0b'},{lbl:'High-end',v:he_gmv,col:'#f59e0b'}].filter(s=>s.v>0),
-      extra:`${he_qty.toLocaleString()} H-end units · H-end ${mobile_qty?Math.round(he_qty/mobile_qty*100):0}%`},
+      segs:[{lbl:'Standard GMV',v:std_gmv,col:'#475569'},{lbl:'H-end GMV',v:he_gmv,col:'#f59e0b'}].filter(s=>s.v>0),
+      extra:`H-end GMV ${mobile_gmv?Math.round(he_gmv/mobile_gmv*100):0}% · Unit pen. ${mobile_qty?Math.round(he_qty/mobile_qty*100):0}% (${he_qty.toLocaleString()} u)`},
     pad:{lbl:'Tablet',col:'#22c55e',gmv:pad_gmv,qty:pad_qty,
       segs:[{lbl:'Tablet',v:pad_gmv,col:'#22c55e'},{lbl:'Others',v:total_gmv-pad_gmv,col:'#3f3f46'}].filter(s=>s.v>0),
       extra:`${total_gmv?Math.round(pad_gmv/total_gmv*100):0}% of total GMV`},
@@ -2353,7 +2361,7 @@ function buildDonutSection(stores,info){
       const asp=cd.qty>0?cd.gmv/cd.qty:0;
       donutContent=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
         <div class="donut-wrap" style="cursor:pointer" onclick="expandCard(this)">
-          <div class="donut-subtitle">${cd.lbl} · ${f(cd.gmv,2)}</div>
+          <div class="donut-subtitle">${cd.lbl} · GMV Revenue Split · ${f(cd.gmv,2)}</div>
           ${svgDonut(cd.segs,cd.lbl.slice(0,4),f(cd.gmv,2))}
         </div>
         <div style="display:flex;flex-direction:column;gap:9px;padding-top:6px">
@@ -2363,15 +2371,22 @@ function buildDonutSection(stores,info){
             <div style="font-size:.6rem;color:var(--t3);margin-top:2px">${cd.extra}</div>
           </div>
           ${selKeys[0]==='mob'?`<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:8px;padding:12px;cursor:pointer" onclick="expandCard(this)">
-            <div style="font-size:.56rem;color:var(--t4);margin-bottom:4px">HIGH-END CONTRIBUTION</div>
-            <div style="display:flex;align-items:baseline;gap:8px">
-              <div style="font-size:1.4rem;font-weight:700;color:#f59e0b">${mobile_qty?Math.round(he_qty/mobile_qty*100):0}%</div>
-              <div style="font-size:.72rem;font-weight:600;color:var(--t2)">${f(he_gmv,2)}</div>
+            <div style="font-size:.56rem;color:var(--t4);margin-bottom:4px">HIGH-END</div>
+            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+              <div style="display:flex;align-items:baseline;gap:3px">
+                <div style="font-size:1.3rem;font-weight:700;color:#f59e0b">${mobile_qty?Math.round(he_qty/mobile_qty*100):0}%</div>
+                <div style="font-size:.6rem;color:var(--t4)">units</div>
+              </div>
+              <div style="font-size:.6rem;color:var(--t4);margin:0 2px">·</div>
+              <div style="display:flex;align-items:baseline;gap:3px">
+                <div style="font-size:1.1rem;font-weight:600;color:#fbbf24">${mobile_gmv?Math.round(he_gmv/mobile_gmv*100):0}%</div>
+                <div style="font-size:.6rem;color:var(--t4)">revenue</div>
+              </div>
             </div>
-            <div style="margin-top:6px;height:5px;background:var(--bg1);border-radius:3px;overflow:hidden">
-              <div style="height:100%;background:#f59e0b;border-radius:3px;width:${mobile_qty?Math.round(he_qty/mobile_qty*100):0}%"></div>
+            <div style="margin-top:5px;height:5px;background:var(--bg1);border-radius:3px;overflow:hidden">
+              <div style="height:100%;background:#f59e0b;border-radius:3px;width:${mobile_gmv?Math.round(he_gmv/mobile_gmv*100):0}%"></div>
             </div>
-            <div style="font-size:.56rem;color:var(--t4);margin-top:4px">${he_qty.toLocaleString()} units · ASP ${he_qty>0?f(he_gmv/he_qty,0):'—'}</div>
+            <div style="font-size:.56rem;color:var(--t4);margin-top:4px">${he_qty.toLocaleString()} units · ${f(he_gmv,2)} · ASP ${he_qty>0?f(he_gmv/he_qty,0):'—'}</div>
           </div>`:''}
           <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${cd.col};border-radius:8px;padding:12px;cursor:pointer" onclick="expandCard(this)">
             <div style="font-size:.56rem;color:var(--t4);margin-bottom:3px">UNITS SOLD</div>
@@ -6500,6 +6515,87 @@ function initRiskMockup() {
     +_mom+'</div></div>'
     +'</div></div>\n\n';
 
+  // ── Section ② H-end Penetration Trend: dynamic computation ──────────────────
+  var _heTier=function(mn2){
+    var src=mn2?_SRCS[mn2]:null; if(!src) return null;
+    var T={premium:{he:0,mob:0},midhigh:{he:0,mob:0},value:{he:0,mob:0}};
+    var allHe=0,allMob=0;
+    Object.values(src.stores).forEach(function(s){ allHe+=(s.highend_qty||0); allMob+=(s.mob_qty||0); });
+    (typeof VIS_STORES!=='undefined'?VIS_STORES:[]).forEach(function(v){
+      var s=src.stores[v.sid]; if(!s) return;
+      var g=T[(v.tier||'midhigh')]||T.midhigh;
+      g.he+=(s.highend_qty||0); g.mob+=(s.mob_qty||0);
+    });
+    var p=function(g){return g.mob>0?Math.round(g.he/g.mob*100):null;};
+    var ap=allMob>0?Math.round(allHe/allMob*100):null;
+    return{prem:p(T.premium),mhi:p(T.midhigh),val:p(T.value),all:ap};
+  };
+  var _ht2=_heTier(p2mn),_ht1=_heTier(p1mn),_htC=_heTier(mn);
+  var _heY=function(pct){return pct==null?null:Math.max(8,Math.round(140-(Math.max(10,Math.min(55,pct))-10)/45*120));};
+  var _svgHend=(function(){
+    var x1=150,x2=270,x3=390,s='';
+    s+='<svg viewBox="0 0 520 190" style="width:100%;height:auto">';
+    s+='<line x1="60" y1="20" x2="480" y2="20" stroke="#1e293b" stroke-width="1"/>';
+    s+='<line x1="60" y1="50" x2="480" y2="50" stroke="#1e293b" stroke-width="1"/>';
+    s+='<line x1="60" y1="80" x2="480" y2="80" stroke="#1e293b" stroke-width="1"/>';
+    s+='<line x1="60" y1="110" x2="480" y2="110" stroke="#1e293b" stroke-width="1"/>';
+    s+='<line x1="60" y1="140" x2="480" y2="140" stroke="#1e293b" stroke-width="1"/>';
+    s+='<text x="52" y="23" fill="#475569" font-size="9" text-anchor="end">50%</text>';
+    s+='<text x="52" y="53" fill="#475569" font-size="9" text-anchor="end">40%</text>';
+    s+='<text x="52" y="83" fill="#475569" font-size="9" text-anchor="end">30%</text>';
+    s+='<text x="52" y="113" fill="#475569" font-size="9" text-anchor="end">20%</text>';
+    s+='<text x="52" y="143" fill="#475569" font-size="9" text-anchor="end">10%</text>';
+    if(p2mn) s+='<text x="'+x1+'" y="165" fill="#64748b" font-size="10" text-anchor="middle">'+p2mn+'</text>';
+    if(p1mn) s+='<text x="'+x2+'" y="165" fill="#64748b" font-size="10" text-anchor="middle">'+p1mn+'</text>';
+    s+='<text x="'+x3+'" y="165" fill="#3b82f6" font-size="10" text-anchor="middle" font-weight="700">'+mn+' (EOM est.)</text>';
+    var mk=function(v2,v1,vC){
+      var pts=[];
+      if(p2mn&&v2!=null) pts.push(x1+','+_heY(v2));
+      if(p1mn&&v1!=null) pts.push(x2+','+_heY(v1));
+      if(vC!=null) pts.push(x3+','+_heY(vC));
+      return pts.join(' ');
+    };
+    // Overall (gray dashed)
+    var oP=mk(_ht2&&_ht2.all,_ht1&&_ht1.all,_htC&&_htC.all);
+    if(oP){
+      s+='<polyline points="'+oP+'" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,3" stroke-linecap="round"/>';
+      if(p2mn&&_ht2&&_ht2.all!=null){var y0=_heY(_ht2.all);s+='<circle cx="'+x1+'" cy="'+y0+'" r="4" fill="#94a3b8"/><text x="'+x1+'" y="'+(y0-7)+'" fill="#94a3b8" font-size="9" text-anchor="middle">'+_ht2.all+'%</text>';}
+      if(p1mn&&_ht1&&_ht1.all!=null){var y0=_heY(_ht1.all);s+='<circle cx="'+x2+'" cy="'+y0+'" r="4" fill="#94a3b8"/><text x="'+x2+'" y="'+(y0-7)+'" fill="#94a3b8" font-size="9" text-anchor="middle">'+_ht1.all+'%</text>';}
+      if(_htC&&_htC.all!=null){var y0=_heY(_htC.all);s+='<circle cx="'+x3+'" cy="'+y0+'" r="5" fill="#94a3b8" stroke="#09090b" stroke-width="2"/><text x="'+(x3+12)+'" y="'+(y0+3)+'" fill="#94a3b8" font-size="9" text-anchor="start" font-weight="700">'+_htC.all+'%</text>';}
+    }
+    // Premium (blue)
+    var pP=mk(_ht2&&_ht2.prem,_ht1&&_ht1.prem,_htC&&_htC.prem);
+    if(pP){
+      s+='<polyline points="'+pP+'" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>';
+      if(p2mn&&_ht2&&_ht2.prem!=null){var y0=_heY(_ht2.prem);s+='<circle cx="'+x1+'" cy="'+y0+'" r="4" fill="#3b82f6"/><text x="'+x1+'" y="'+(y0-7)+'" fill="#3b82f6" font-size="9" text-anchor="middle">'+_ht2.prem+'%</text>';}
+      if(p1mn&&_ht1&&_ht1.prem!=null){var y0=_heY(_ht1.prem);s+='<circle cx="'+x2+'" cy="'+y0+'" r="4" fill="#3b82f6"/><text x="'+x2+'" y="'+(y0-7)+'" fill="#3b82f6" font-size="9" text-anchor="middle">'+_ht1.prem+'%</text>';}
+      if(_htC&&_htC.prem!=null){var y0=_heY(_htC.prem);s+='<circle cx="'+x3+'" cy="'+y0+'" r="5" fill="#3b82f6" stroke="#09090b" stroke-width="2"/><text x="'+(x3+12)+'" y="'+(y0+3)+'" fill="#60a5fa" font-size="9" text-anchor="start" font-weight="700">'+_htC.prem+'%</text>';}
+    }
+    // Mid-High (green)
+    var mP=mk(_ht2&&_ht2.mhi,_ht1&&_ht1.mhi,_htC&&_htC.mhi);
+    if(mP){
+      s+='<polyline points="'+mP+'" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/>';
+      if(p2mn&&_ht2&&_ht2.mhi!=null){var y0=_heY(_ht2.mhi);s+='<circle cx="'+x1+'" cy="'+y0+'" r="3.5" fill="#22c55e"/>';}
+      if(p1mn&&_ht1&&_ht1.mhi!=null){var y0=_heY(_ht1.mhi);s+='<circle cx="'+x2+'" cy="'+y0+'" r="3.5" fill="#22c55e"/>';}
+      if(_htC&&_htC.mhi!=null){var y0=_heY(_htC.mhi);s+='<circle cx="'+x3+'" cy="'+y0+'" r="4.5" fill="#22c55e" stroke="#09090b" stroke-width="2"/>';}
+    }
+    // Value (amber)
+    var vP=mk(_ht2&&_ht2.val,_ht1&&_ht1.val,_htC&&_htC.val);
+    if(vP){
+      s+='<polyline points="'+vP+'" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>';
+      if(p2mn&&_ht2&&_ht2.val!=null){var y0=_heY(_ht2.val);s+='<circle cx="'+x1+'" cy="'+y0+'" r="3.5" fill="#f59e0b"/>';}
+      if(p1mn&&_ht1&&_ht1.val!=null){var y0=_heY(_ht1.val);s+='<circle cx="'+x2+'" cy="'+y0+'" r="3.5" fill="#f59e0b"/>';}
+      if(_htC&&_htC.val!=null){var y0=_heY(_htC.val);s+='<circle cx="'+x3+'" cy="'+y0+'" r="4.5" fill="#f59e0b" stroke="#09090b" stroke-width="2"/><text x="'+(x3+12)+'" y="'+(y0+3)+'" fill="#f1f5f9" font-size="9" text-anchor="start">'+_htC.val+'%</text>';}
+    }
+    s+='<circle cx="70" cy="178" r="4" fill="#3b82f6"/><text x="78" y="181" fill="#94a3b8" font-size="9">Premium</text>';
+    s+='<circle cx="140" cy="178" r="4" fill="#22c55e"/><text x="148" y="181" fill="#94a3b8" font-size="9">Mid-High</text>';
+    s+='<circle cx="215" cy="178" r="4" fill="#f59e0b"/><text x="223" y="181" fill="#94a3b8" font-size="9">Value</text>';
+    s+='<line x1="282" y1="178" x2="292" y2="178" stroke="#94a3b8" stroke-width="2" stroke-dasharray="3,2"/><circle cx="287" cy="178" r="3" fill="#94a3b8"/><text x="296" y="181" fill="#94a3b8" font-size="9">Overall</text>';
+    s+='</svg>';
+    return s;
+  })();
+  // ── End section ② computation ────────────────────────────────────────────────
+
   container.innerHTML = _sec1 + `
 <!-- ══════════════════════════════════════════════════════════════
      2. H-END PENETRATION TREND
@@ -6509,77 +6605,8 @@ function initRiskMockup() {
 
   <div style="display:flex;gap:16px;flex-wrap:wrap">
 
-    <!-- Line chart SVG -->
-    <div class="kmo-card" style="flex:2;min-width:400px;padding:20px">
-      <svg viewBox="0 0 520 180" style="width:100%;height:auto">
-        <!-- grid lines -->
-        <line x1="60" y1="20" x2="480" y2="20" stroke="#1e293b" stroke-width="1"/>
-        <line x1="60" y1="50" x2="480" y2="50" stroke="#1e293b" stroke-width="1"/>
-        <line x1="60" y1="80" x2="480" y2="80" stroke="#1e293b" stroke-width="1"/>
-        <line x1="60" y1="110" x2="480" y2="110" stroke="#1e293b" stroke-width="1"/>
-        <line x1="60" y1="140" x2="480" y2="140" stroke="#1e293b" stroke-width="1"/>
-        <!-- y labels -->
-        <text x="52" y="23" fill="#475569" font-size="9" text-anchor="end">50%</text>
-        <text x="52" y="53" fill="#475569" font-size="9" text-anchor="end">40%</text>
-        <text x="52" y="83" fill="#475569" font-size="9" text-anchor="end">30%</text>
-        <text x="52" y="113" fill="#475569" font-size="9" text-anchor="end">20%</text>
-        <text x="52" y="143" fill="#475569" font-size="9" text-anchor="end">10%</text>
-        <!-- x labels -->
-        <text x="150" y="165" fill="#64748b" font-size="10" text-anchor="middle">Jul</text>
-        <text x="270" y="165" fill="#64748b" font-size="10" text-anchor="middle">Aug</text>
-        <text x="390" y="165" fill="#3b82f6" font-size="10" text-anchor="middle" font-weight="700">Sep (EOM est.)</text>
-
-        <!-- Helper: y = 140 - (val-10)/40 * 120  so 10%→140, 50%→20 -->
-        <!-- Overall: 48.1% 26.1% 27.2% -->
-        <!-- y: 48.1→25.7  26.1→91.7  27.2→88.4 -->
-        <polyline points="150,25.7 270,91.7 390,88.4" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,3" stroke-linecap="round"/>
-        <circle cx="150" cy="25.7" r="4" fill="#94a3b8"/>
-        <circle cx="270" cy="91.7" r="4" fill="#94a3b8"/>
-        <circle cx="390" cy="88.4" r="5" fill="#94a3b8" stroke="#09090b" stroke-width="2"/>
-        <text x="150" y="18" fill="#94a3b8" font-size="9" text-anchor="middle">48.1%</text>
-        <text x="270" y="84" fill="#94a3b8" font-size="9" text-anchor="middle">26.1%</text>
-        <text x="405" y="81" fill="#94a3b8" font-size="9" text-anchor="start" font-weight="700">27.2%</text>
-
-        <!-- Premium: 62% 34% 37% (estimated from data) -->
-        <!-- y: 62→(62-10)/40*120=156 → 140-156 = capped at 18 -->
-        <!-- y: 34→(34-10)/40*120=72 → 140-72=68 -->
-        <!-- y: 37→(37-10)/40*120=81 → 140-81=59 -->
-        <polyline points="150,18 270,68 390,59" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="150" cy="18" r="4" fill="#3b82f6"/>
-        <circle cx="270" cy="68" r="4" fill="#3b82f6"/>
-        <circle cx="390" cy="59" r="5" fill="#3b82f6" stroke="#09090b" stroke-width="2"/>
-        <text x="150" y="12" fill="#3b82f6" font-size="9" text-anchor="middle">~62%</text>
-        <text x="270" y="61" fill="#3b82f6" font-size="9" text-anchor="middle">~34%</text>
-        <text x="405" y="52" fill="#60a5fa" font-size="9" text-anchor="start" font-weight="700">~37%</text>
-
-        <!-- Mid-High: 50% 26% 27% -->
-        <!-- y: 50→140-120=20, 26→140-48=92, 27→140-51=89 -->
-        <polyline points="150,20 270,92 390,89" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/>
-        <circle cx="150" cy="20" r="3.5" fill="#22c55e"/>
-        <circle cx="270" cy="92" r="3.5" fill="#22c55e"/>
-        <circle cx="390" cy="89" r="4.5" fill="#22c55e" stroke="#09090b" stroke-width="2"/>
-
-        <!-- Value: 30% 18% 19% -->
-        <!-- y: 30→140-60=80, 18→140-24=116, 19→140-27=113 -->
-        <polyline points="150,80 270,116 390,113" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
-        <circle cx="150" cy="80" r="3.5" fill="#f59e0b"/>
-        <circle cx="270" cy="116" r="3.5" fill="#f59e0b"/>
-        <circle cx="390" cy="113" r="4.5" fill="#f59e0b" stroke="#09090b" stroke-width="2"/>
-        <text x="405" y="92" fill="#f1f5f9" font-size="9" text-anchor="start">~27%</text>
-        <text x="405" y="113" fill="#f1f5f9" font-size="9" text-anchor="start">~19%</text>
-
-        <!-- Legend -->
-        <circle cx="70" cy="175" r="4" fill="#3b82f6"/>
-        <text x="78" y="178" fill="#94a3b8" font-size="9">Premium</text>
-        <circle cx="140" cy="175" r="4" fill="#22c55e"/>
-        <text x="148" y="178" fill="#94a3b8" font-size="9">Mid-High</text>
-        <circle cx="215" cy="175" r="4" fill="#f59e0b"/>
-        <text x="223" y="178" fill="#94a3b8" font-size="9">Value</text>
-        <line x1="282" y1="175" x2="292" y2="175" stroke="#94a3b8" stroke-width="2" stroke-dasharray="3,2"/>
-        <circle cx="287" cy="175" r="3" fill="#94a3b8"/>
-        <text x="296" y="178" fill="#94a3b8" font-size="9">Overall</text>
-      </svg>
-    </div>
+    <!-- Line chart SVG (dynamic — built from _svgHend above) -->
+    <div class="kmo-card" style="flex:2;min-width:400px;padding:20px">${_svgHend}</div>
 
     <!-- Insights -->
     <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px">
